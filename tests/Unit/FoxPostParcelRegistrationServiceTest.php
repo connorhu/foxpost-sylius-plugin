@@ -148,7 +148,10 @@ final class FoxPostParcelRegistrationServiceTest extends TestCase
 
         $order = new Order();
         $order->setNumber('2026/00042');
-        $order->setBillingAddress($address);
+        // A #99 óta a factory MINDIG a szállítási címet olvassa — a
+        // számlázási cím itt lényegtelen, de a valós rendelésen is mindig
+        // kitöltött.
+        $order->setShippingAddress($address);
 
         return $order;
     }

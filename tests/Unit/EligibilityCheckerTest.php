@@ -222,7 +222,7 @@ final class EligibilityCheckerTest extends TestCase
         };
 
         $order = $this->order();
-        $order->setBillingAddress($address);
+        $order->setShippingAddress($address);
 
         self::assertSame([$expectedCode], $this->codes($this->checker->check($this->homeDeliveryShipment($order))));
     }
@@ -240,7 +240,7 @@ final class EligibilityCheckerTest extends TestCase
     public function testAHomeDeliveryShipmentWithoutAnAddressReportsEveryAddressError(): void
     {
         $order = $this->order();
-        $order->setBillingAddress(null);
+        $order->setShippingAddress(null);
 
         self::assertSame(
             ['missing_zip', 'missing_city', 'missing_address'],
@@ -249,29 +249,17 @@ final class EligibilityCheckerTest extends TestCase
     }
 
     /**
-     * A `foxpostSameAsBilling` kapcsolja, MELYIK címet nézzük — ez a HD ág
-     * legkönnyebben elrontható darabja.
+     * A szabály: a HD ág mindig a szállítási címet nézi, a számlázási címet
+     * soha nem — ez a `foxpostSameAsBilling` megszűnése óta az EGYETLEN
+     * igazság (lásd FoxPostParcelPayloadFactoryTest is).
      */
-    public function testHomeDeliveryUsesTheBillingAddressWhenSameAsBillingIsSet(): void
+    public function testHomeDeliveryAlwaysUsesTheShippingAddress(): void
     {
         $order = $this->order();
         $order->setBillingAddress($this->address());
         $order->setShippingAddress(new Address());
 
         $shipment = $this->homeDeliveryShipment($order);
-        $shipment->setFoxpostSameAsBilling(true);
-
-        self::assertTrue($this->checker->check($shipment)->eligible);
-    }
-
-    public function testHomeDeliveryUsesTheShippingAddressWhenSameAsBillingIsNotSet(): void
-    {
-        $order = $this->order();
-        $order->setBillingAddress($this->address());
-        $order->setShippingAddress(new Address());
-
-        $shipment = $this->homeDeliveryShipment($order);
-        $shipment->setFoxpostSameAsBilling(false);
 
         self::assertSame(
             ['missing_zip', 'missing_city', 'missing_address'],
@@ -370,7 +358,9 @@ final class EligibilityCheckerTest extends TestCase
         $order = new Order();
         $order->setState($state);
         $order->setPaymentState($paymentState);
-        $order->setBillingAddress($this->address());
+        // A #99 óta az EligibilityChecker a SZÁLLÍTÁSI címet nézi, tehát az
+        // alapértelmezett rendelésnek is azt kell kitöltenie.
+        $order->setShippingAddress($this->address());
 
         return $order;
     }
@@ -389,23 +379,24 @@ final class EligibilityCheckerTest extends TestCase
         ?string $deliveryKindSlug,
         ?string $pickupPointId = null,
         ?string $phoneNumber = null,
-        bool $sameAsBilling = true,
         ?OrderInterface $order = null,
     ): ShipmentInterface&FoxPostShipmentInterface {
         $order ??= $this->order();
 
-        return new class($deliveryKindSlug, $pickupPointId, $phoneNumber, $sameAsBilling, $order) extends Shipment implements FoxPostShipmentInterface {
+        return new class($deliveryKindSlug, $pickupPointId, $phoneNumber, $order) extends Shipment implements FoxPostShipmentInterface {
+            // A FoxPostShipmentTrait a FoxPostShipmentInterface (még meglévő)
+            // foxpostSameAsBilling-kontraktusát elégíti ki — az
+            // EligibilityChecker ezt már nem olvassa, ez itt csak a
+            // típusszerződés miatt kell.
             use FoxPostShipmentTrait;
 
             public function __construct(
                 private readonly ?string $deliveryKindSlug,
                 private readonly ?string $pickupPoint,
                 private readonly ?string $phone,
-                bool $sameAsBilling,
                 private readonly ?OrderInterface $orderOverride,
             ) {
                 parent::__construct();
-                $this->setFoxpostSameAsBilling($sameAsBilling);
             }
 
             public function getDeliveryKindSlug(): ?string
