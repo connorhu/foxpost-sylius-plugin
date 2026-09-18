@@ -1,0 +1,70 @@
+# src/Resources/config/app/foxpost_parcel.yaml
+# Átvéve: bolt config/workflows/foxpost_parcel.yaml (#170) — a 20 átmenet neve,
+# from-ja és to-ja karakterre azonos, csak a `supports` osztálynév cserélve.
+framework:
+    workflows:
+        foxpost_parcel:
+            type: state_machine
+            marking_store:
+                type: method
+                property: internalStatus
+            supports:
+                - CodeConjure\SyliusFoxPostPlugin\Entity\FoxpostParcel
+            initial_marking: eligible
+            places:
+                - eligible
+                - validation_failed
+                - pending_registration
+                - registration_failed
+                - registered
+                - label_ready
+                - packed
+                - handed_over
+                - in_transit
+                - delivered
+                - delivery_failed
+                - cancelled
+                - returned
+            transitions:
+                validate_fail:
+                    from: [eligible]
+                    to: validation_failed
+                fix_and_retry:
+                    from: [validation_failed]
+                    to: eligible
+                queue:
+                    from: [eligible]
+                    to: pending_registration
+                registration_success:
+                    from: [pending_registration]
+                    to: registered
+                registration_fail:
+                    from: [pending_registration]
+                    to: registration_failed
+                re_register:
+                    from: [registration_failed, cancelled]
+                    to: eligible
+                generate_label:
+                    from: [registered]
+                    to: label_ready
+                mark_packed:
+                    from: [registered, label_ready]
+                    to: packed
+                hand_over:
+                    from: [packed]
+                    to: handed_over
+                cancel:
+                    from: [registered, label_ready, packed]
+                    to: cancelled
+                tracking_in_transit:
+                    from: [handed_over]
+                    to: in_transit
+                tracking_delivered:
+                    from: [in_transit, handed_over]
+                    to: delivered
+                tracking_failed:
+                    from: [in_transit]
+                    to: delivery_failed
+                tracking_returned:
+                    from: [in_transit, delivery_failed]
+                    to: returned
