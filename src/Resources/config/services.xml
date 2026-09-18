@@ -56,5 +56,11 @@
 
         <!-- Pénztár: a checkout válaszd-ki-a-szállítást form validációs csoportjai -->
         <service id="CodeConjure\SyliusFoxPostPlugin\Form\Extension\SelectShippingTypeExtension"/>
+
+        <!-- Admin: a szállítási mód foxpostDefaultSize mezője. A deliveryKind
+             mező a boltban marad, lásd az osztály PHPDoc-ját. Az autoconfigure
+             a getExtendedTypes()-ből automatikusan felteszi a form.type_extension
+             taget, ahogy a SelectShippingTypeExtension-nél is. -->
+        <service id="CodeConjure\SyliusFoxPostPlugin\Form\Extension\ShippingMethodTypeExtension"/>
     </services>
 </container>
