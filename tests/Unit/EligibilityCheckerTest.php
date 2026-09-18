@@ -8,7 +8,6 @@ use CodeConjure\FoxPost\DeliveryKind;
 use CodeConjure\SyliusFoxPostPlugin\EligibilityChecker;
 use CodeConjure\SyliusFoxPostPlugin\EligibilityResult;
 use CodeConjure\SyliusFoxPostPlugin\Model\FoxPostShipmentInterface;
-use CodeConjure\SyliusFoxPostPlugin\Model\FoxPostShipmentTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\Address;
@@ -384,12 +383,6 @@ final class EligibilityCheckerTest extends TestCase
         $order ??= $this->order();
 
         return new class($deliveryKindSlug, $pickupPointId, $phoneNumber, $order) extends Shipment implements FoxPostShipmentInterface {
-            // A FoxPostShipmentTrait a FoxPostShipmentInterface (még meglévő)
-            // foxpostSameAsBilling-kontraktusát elégíti ki — az
-            // EligibilityChecker ezt már nem olvassa, ez itt csak a
-            // típusszerződés miatt kell.
-            use FoxPostShipmentTrait;
-
             public function __construct(
                 private readonly ?string $deliveryKindSlug,
                 private readonly ?string $pickupPoint,
