@@ -20,9 +20,13 @@ use Sylius\Component\Core\Model\ShipmentInterface;
  * dől el, a Sylius saját `differentShippingAddress`-ével, tehát az
  * `order.shippingAddress` MINDIG a helyes cím.
  *
- * A telefon regressziója: a #99 előtt a házhozszállítási ág a shipment
- * phoneNumberjét ÜRESEN hagyta (a mező csak a csomagautomata blokkban
- * renderelt), így a csomagfeladás üres számmal ment ki.
+ * A telefon-garancia NEM itt van: a factory mindig `$shipment->getPhoneNumber()
+ * ?? ''`-t olvasott, ezen a #99 nem változtatott, tehát egy itteni teszt nem
+ * tudna különbséget tenni a régi és az új kód között. A tényleges garancia két
+ * másik helyen ül: a `recipient_phone_required` validation group (Task 5) és
+ * a checkout sablon, amely eddig csak a csomagautomata blokkban renderelte a
+ * telefon mezőt (Task 7). Ha valaki ide tenne egy telefon-tesztet, először
+ * nézze meg, hogy az valóban ezt az osztályt fedi-e.
  */
 final class FoxPostParcelPayloadFactoryTest extends TestCase
 {
@@ -85,18 +89,5 @@ final class FoxPostParcelPayloadFactoryTest extends TestCase
         self::assertSame('1014', $request->recipientZip);
         self::assertSame('Budapest', $request->recipientCity);
         self::assertSame('Hess András tér 5.', $request->recipientAddress);
-    }
-
-    public function testHomeDeliveryCarriesTheRecipientPhone(): void
-    {
-        $request = (new FoxPostParcelPayloadFactory())->buildFromShipment(
-            $this->shipmentFor('foxpost_home_delivery', '+36301234567'),
-        );
-
-        self::assertSame(
-            '+36301234567',
-            $request->recipientPhone,
-            'A #99 előtt ez üres volt: a telefon mező csak a csomagautomata blokkban renderelt.',
-        );
     }
 }
