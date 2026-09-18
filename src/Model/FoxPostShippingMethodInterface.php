@@ -4,16 +4,7 @@ declare(strict_types=1);
 
 namespace CodeConjure\SyliusFoxPostPlugin\Model;
 
-use Sylius\Component\Core\Model\ShippingMethodInterface;
-
-/**
- * A ShippingMethodInterface-kiterjesztés a jelenlegi valóságot rögzíti: a
- * host mód-entitása mindig Sylius szállítási mód is. Ez nélkül a
- * FoxPostShipmentInterface::getMethod() visszatérési típusa (Sylius
- * ShippingMethodInterface) és e traité nem lenne összeegyeztethető — sem
- * futásidőben (a host entitása egyszerre mindkettő), sem teszt-stubként.
- */
-interface FoxPostShippingMethodInterface extends DeliveryKindAwareInterface, ShippingMethodInterface
+interface FoxPostShippingMethodInterface extends DeliveryKindAwareInterface
 {
     public function getFoxpostDefaultSize(): ?string;
 
