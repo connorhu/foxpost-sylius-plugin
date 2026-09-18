@@ -1,0 +1,24 @@
+{
+    "name": "codeconjure/foxpost-sylius-plugin",
+    "description": "FoxPost szállítási integráció Syliushoz: csomagfeladás, címke, nyomkövetés.",
+    "license": "MIT",
+    "version": "1.0.0",
+    "type": "module",
+    "symfony": {
+        "controllers": {
+            "foxpost-shipping": {
+                "main": "controllers/foxpost_shipping_controller.js",
+                "fetch": "eager",
+                "enabled": true
+            },
+            "foxpost-pickup-point": {
+                "main": "controllers/foxpost_pickup_point_controller.js",
+                "fetch": "eager",
+                "enabled": true
+            }
+        }
+    },
+    "peerDependencies": {
+        "@hotwired/stimulus": "^3.0.0"
+    }
+}
