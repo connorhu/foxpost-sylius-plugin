@@ -9,5 +9,32 @@
             <argument type="service" id="doctrine"/>
             <tag name="doctrine.repository_service"/>
         </service>
+
+        <service id="codeconjure.foxpost.http_client" class="Symfony\Component\HttpClient\Psr18Client"/>
+
+        <service id="CodeConjure\FoxPost\Client">
+            <argument type="service" id="codeconjure.foxpost.http_client"/>
+            <argument type="service" id="nyholm.psr7.psr17_factory"/>
+            <argument type="service" id="nyholm.psr7.psr17_factory"/>
+            <argument>%env(FOXPOST_USERNAME)%</argument>
+            <argument>%env(FOXPOST_PASSWORD)%</argument>
+            <argument>%env(FOXPOST_API_KEY)%</argument>
+            <argument type="service" id="codeconjure.foxpost.environment"/>
+        </service>
+
+        <service id="codeconjure.foxpost.environment" class="CodeConjure\FoxPost\Environment">
+            <factory class="CodeConjure\FoxPost\Environment" method="fromSandboxFlag"/>
+            <argument>%env(bool:FOXPOST_SANDBOX)%</argument>
+        </service>
+
+        <service id="CodeConjure\SyliusFoxPostPlugin\EligibilityChecker"/>
+        <service id="CodeConjure\SyliusFoxPostPlugin\FoxPostParcelPayloadFactory"/>
+        <service id="CodeConjure\SyliusFoxPostPlugin\FoxPostParcelRegistrationService"/>
+        <service id="CodeConjure\SyliusFoxPostPlugin\FoxPostLabelService"/>
+        <service id="CodeConjure\SyliusFoxPostPlugin\CachedParcelLockerProvider"/>
+
+        <service id="CodeConjure\SyliusFoxPostPlugin\FoxPostTrackingSyncService">
+            <tag name="monolog.logger" channel="foxpost"/>
+        </service>
     </services>
 </container>
