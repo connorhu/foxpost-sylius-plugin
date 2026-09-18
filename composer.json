@@ -1,0 +1,43 @@
+{
+    "name": "codeconjure/foxpost-sylius-plugin",
+    "description": "FoxPost szállítási integráció Syliushoz: csomagfeladás, címke, nyomkövetés.",
+    "type": "sylius-plugin",
+    "license": "MIT",
+    "require": {
+        "php": "^8.4",
+        "codeconjure/foxpost": "dev-main",
+        "nyholm/psr7": "^1.8",
+        "sylius/sylius": "^2.1",
+        "symfony/http-client": "^7.2"
+    },
+    "require-dev": {
+        "php-http/mock-client": "^1.6",
+        "phpstan/phpstan": "^2.0",
+        "phpunit/phpunit": "^12.0 || ^13.0",
+        "sylius-labs/coding-standard": "^4.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "CodeConjure\\SyliusFoxPostPlugin\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "CodeConjure\\SyliusFoxPostPlugin\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "symfony/flex": true,
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        },
+        "sort-packages": true
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "repositories": [{
+        "name": "foxpost",
+        "type": "path",
+        "url": "../foxpost"
+    }]
+}
