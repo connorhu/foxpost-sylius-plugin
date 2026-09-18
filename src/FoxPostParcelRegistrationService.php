@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CodeConjure\SyliusFoxPostPlugin;
 
 use CodeConjure\FoxPost\Client;
+use CodeConjure\FoxPost\DeliveryKind;
 use CodeConjure\FoxPost\Exception\FoxPostApiException;
 use CodeConjure\SyliusFoxPostPlugin\Entity\FoxpostParcel;
 use CodeConjure\SyliusFoxPostPlugin\Model\FoxPostShipmentInterface;
@@ -31,7 +32,11 @@ final class FoxPostParcelRegistrationService
      *
      * @param array<string, mixed> $overrides Optional field overrides from the admin form
      *
-     * @throws \LogicException if parcel is already registered and cannot be safely overwritten
+     * @throws \LogicException if parcel is already registered and cannot be safely overwritten,
+     *                          or if the shipment has no resolvable FoxPost delivery kind
+     * @throws \InvalidArgumentException if the built payload fails the core DTO's guards
+     *                                    (e.g. a blank required field) — recorded on the parcel
+     *                                    as registration_fail before being re-thrown
      * @throws FoxPostApiException on API failure
      */
     public function register(ShipmentInterface&FoxPostShipmentInterface $shipment, array $overrides = []): FoxpostParcel
@@ -46,20 +51,58 @@ final class FoxPostParcelRegistrationService
             ));
         }
 
-        $request = $this->payloadFactory->buildFromShipment($shipment, $overrides);
-
         /** @var \Sylius\Component\Core\Model\OrderInterface $order */
         $order = $shipment->getOrder();
 
+        // A rekordnak léteznie kell, mielőtt a payload-építés esetleg eldobja
+        // a bemenetet: a mag DTO-ja (`CreateParcelRequest`) `\InvalidArgumentException`-t
+        // dob egy üres kötelező mezőre (pl. `recipientPhone`) — enélkül nem
+        // lenne mire ráírni a hibát. Lásd a lenti catch ágat.
         if ($parcel === null) {
+            $kind = DeliveryKind::tryFrom($shipment->getDeliveryKindSlug() ?? '');
+
+            if ($kind === null) {
+                // Ugyanaz a hiba és üzenet, amit a PayloadFactory::buildFromShipment()
+                // is dobna erre — csak korábban, mert rekordot csak érvényes
+                // deliveryKind birtokában hozhatunk létre.
+                throw new \LogicException(sprintf(
+                    'Shipment #%d has no delivery kind snapshot; cannot build FoxPost payload.',
+                    $shipment->getId() ?? 0,
+                ));
+            }
+
             $parcel = new FoxpostParcel();
             $parcel->setShipment($shipment);
             $parcel->setOrderNumber((string) $order->getNumber());
-            $parcel->setDeliveryKind($request->deliveryKind);
+            $parcel->setDeliveryKind($kind);
             $parcel->setShippingMethodCode($shipment->getMethod()?->getCode());
+            // Ideiglenes érték a nem nullázható mezőkre, hogy a rekord bármikor
+            // flush-olható legyen — a sikeres ág lentebb felülírja a payload
+            // adataival, a bukó ág (lásd catch) érintetlenül hagyja.
+            $parcel->setRecipientName('');
+            $parcel->setRecipientPhone('');
+            $parcel->setRecipientEmail('');
             $this->entityManager->persist($parcel);
         } else {
             $parcel->incrementRetryCount();
+        }
+
+        try {
+            $request = $this->payloadFactory->buildFromShipment($shipment, $overrides);
+        } catch (\InvalidArgumentException $e) {
+            $parcel->setLastApiError($e->getMessage());
+            $parcel->setLastApiErrorAt(new \DateTimeImmutable());
+            $parcel->setUpdatedAt(new \DateTimeImmutable());
+
+            if ($this->workflow->can($parcel, 're_register')) {
+                $this->workflow->apply($parcel, 're_register');
+            }
+
+            $this->workflow->apply($parcel, 'queue');
+            $this->workflow->apply($parcel, 'registration_fail');
+            $this->entityManager->flush();
+
+            throw $e;
         }
 
         // Snapshot the submitted data
