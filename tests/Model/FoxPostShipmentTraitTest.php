@@ -26,8 +26,8 @@ final class FoxPostShipmentTraitTest extends TestCase
 
     public function testOurOwnSlugsResolveToADeliveryKind(): void
     {
-        self::assertSame(DeliveryKind::ParcelLocker, DeliveryKind::tryFrom($this->shipment('foxpost_parcel_locker')->getDeliveryKindSlug()));
-        self::assertSame(DeliveryKind::HomeDelivery, DeliveryKind::tryFrom($this->shipment('foxpost_home_delivery')->getDeliveryKindSlug()));
+        self::assertSame(DeliveryKind::ParcelLocker, DeliveryKind::tryFrom($this->shipment('foxpost_parcel_locker')->getDeliveryKindSlug() ?? ''));
+        self::assertSame(DeliveryKind::HomeDelivery, DeliveryKind::tryFrom($this->shipment('foxpost_home_delivery')->getDeliveryKindSlug() ?? ''));
     }
 
     /**
@@ -35,7 +35,7 @@ final class FoxPostShipmentTraitTest extends TestCase
      */
     public function testAForeignSlugResolvesToNothing(): void
     {
-        self::assertNull(DeliveryKind::tryFrom($this->shipment('packeta_pickup_point')->getDeliveryKindSlug()));
+        self::assertNull(DeliveryKind::tryFrom($this->shipment('packeta_pickup_point')->getDeliveryKindSlug() ?? ''));
     }
 
     private function shipment(?string $slug = null): FoxPostShipmentInterface

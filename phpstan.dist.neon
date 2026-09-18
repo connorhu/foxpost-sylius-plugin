@@ -5,5 +5,3 @@ parameters:
         - tests
     ignoreErrors:
         - identifier: trait.unused
-        - identifier: argument.type
-          path: tests/Model/FoxPostShipmentTraitTest.php
