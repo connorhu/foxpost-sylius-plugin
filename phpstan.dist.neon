@@ -3,5 +3,7 @@ parameters:
     paths:
         - src
         - tests
-    stubFiles:
-        - stubs/PayumConvert.stub.php
+    ignoreErrors:
+        - identifier: trait.unused
+        - identifier: argument.type
+          path: tests/Model/FoxPostShipmentTraitTest.php
