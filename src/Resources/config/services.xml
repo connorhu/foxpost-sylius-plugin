@@ -7,6 +7,24 @@
              route-nevet; ezt a Task 14-ben a host állítja a saját route-jára.
              Alapból null: a sablon ekkor a data-attribútumot ki sem teszi. -->
         <parameter key="codeconjure.foxpost.city_lookup_route">null</parameter>
+
+        <!-- C4: a %env(bool:FOXPOST_SANDBOX)% korábban KÖZVETLENÜL, egyetlen
+             <argument>-ként került a codeconjure.foxpost.environment enum-
+             szolgáltatás statikus factory-hívásába. Ez a minta (egy teljes
+             argumentum-string, ami MAGA a bare "%env(...)%" placeholder)
+             PhpDumper::dumpValue()-ban egy külön ágat jár be (a
+             preg_match('/^%([^%]+)%$/', ...) találat dumpParameter()-t hív),
+             ami — ha a placeholder dump-időben bármi okból nem a szokásos
+             getEnv()-hívássá alakul — futásidőben $container->getParameter(
+             'env(bool:FOXPOST_SANDBOX)')-t generál, ami ParameterNotFound-
+             Exception-t dob, mert az env-placeholder sosem fagy be valódi
+             paraméterré. A javítás a MÁR bevált city_lookup_route mintát
+             követi: egy explicit <parameter> a paraméter-listában garantáltan
+             regisztrált bejegyzés, amit a ResolveParameterPlaceHoldersPass a
+             paraméter-bag SAJÁT feloldásán keresztül old fel — ez Symfony
+             legszélesebb körben tesztelt útja env-alapú konfigurációs
+             értékekhez, és strukturálisan kizárja ezt a hibaosztályt. -->
+        <parameter key="codeconjure.foxpost.sandbox">%env(bool:FOXPOST_SANDBOX)%</parameter>
     </parameters>
 
     <services>
@@ -31,7 +49,7 @@
 
         <service id="codeconjure.foxpost.environment" class="CodeConjure\FoxPost\Environment">
             <factory class="CodeConjure\FoxPost\Environment" method="fromSandboxFlag"/>
-            <argument>%env(bool:FOXPOST_SANDBOX)%</argument>
+            <argument>%codeconjure.foxpost.sandbox%</argument>
         </service>
 
         <service id="CodeConjure\SyliusFoxPostPlugin\EligibilityChecker"/>
@@ -43,6 +61,12 @@
         <service id="CodeConjure\SyliusFoxPostPlugin\FoxPostTrackingSyncService">
             <tag name="monolog.logger" channel="foxpost"/>
         </service>
+
+        <!-- A csomagstátuszok automatikus frissítése a FoxPost API-ból. Az
+             #[AsCommand] attribútum + az autoconfigure teszi fel a
+             console.command taget (a FrameworkBundle saját, minden konténerre
+             érvényes attribútum-autoconfigurációja, nem plugin-specifikus). -->
+        <service id="CodeConjure\SyliusFoxPostPlugin\Command\FoxPostTrackingSyncCommand"/>
 
         <!-- Admin felület: controllerek, menü, form type, Twig -->
         <service id="CodeConjure\SyliusFoxPostPlugin\Controller\FoxPostParcelController"/>
