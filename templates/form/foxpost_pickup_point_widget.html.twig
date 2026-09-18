@@ -1,0 +1,42 @@
+{% block foxpost_pickup_point_widget %}
+    {% set has_value = value is not empty %}
+
+    <div
+        class="mb-3"
+        data-controller="foxpost-pickup-point"
+        data-foxpost-pickup-point-widget-url-value="{{ widget_url }}"
+    >
+        {{- block('hidden_widget') -}}
+
+        {# Kiválasztott pont megjelenítése #}
+        <div
+            data-foxpost-pickup-point-target="display"
+            class="mb-2 {% if not has_value %}d-none{% endif %}"
+        >
+            <span class="fw-semibold" data-foxpost-pickup-point-target="pointName">
+                {{ point_name ?? '' }}
+            </span>
+            <br>
+            <span class="text-muted small" data-foxpost-pickup-point-target="pointAddress">
+                {{ point_address ?? '' }}
+            </span>
+        </div>
+
+        {# Widget megnyitó gomb #}
+        <button
+            type="button"
+            class="btn {{ not valid ? 'btn-outline-danger' : 'btn-outline-secondary' }} btn-sm"
+            data-foxpost-pickup-point-target="button"
+            data-action="click->foxpost-pickup-point#openWidget"
+        >
+            <i class="ti ti-map-pin me-1"></i>
+            {% if has_value %}
+                {{ 'codeconjure.foxpost.pickup_point.change'|trans }}
+            {% else %}
+                {{ 'codeconjure.foxpost.pickup_point.select'|trans }}
+            {% endif %}
+        </button>
+
+        {{ block('form_errors') }}
+    </div>
+{% endblock %}

@@ -1,0 +1,48 @@
+# See messages.hu.yaml for the structure and provenance notes.
+app:
+    ui:
+        foxpost:
+            parcels: 'FoxPost parcels'
+            order_number: 'Order number'
+            barcode: 'Barcode'
+            delivery_kind: 'Delivery method'
+            status: 'Status'
+            status.eligible: 'Eligible'
+            status.validation_failed: 'Validation failed'
+            status.registration_failed: 'Registration failed'
+            status.registered: 'Registered'
+            status.label_ready: 'Label ready'
+            status.packed: 'Packed'
+            status.handed_over: 'Handed over'
+            status.in_transit: 'In transit'
+            status.delivered: 'Delivered'
+            status.cancelled: 'Cancelled'
+            label_generated_at: 'Label generated at'
+            register: 'Register'
+            label: 'Label'
+            cancel: 'Cancel'
+            bulk_register: 'Bulk register'
+            bulk_label: 'Bulk label'
+
+codeconjure:
+    foxpost:
+        delivery_kind:
+            foxpost_home_delivery: 'FoxPost home delivery'
+            foxpost_parcel_locker: 'FoxPost parcel locker'
+        address:
+            country_code.not_blank: 'Country is required.'
+            postcode.not_blank: 'Postcode is required.'
+            city.not_blank: 'City is required.'
+            street.not_blank: 'Street and house number are required.'
+            phone_number.not_blank: 'Phone number is required.'
+        channel:
+            label_page_size: 'FoxPost label size'
+            label_page_size_placeholder: 'Not set'
+        checkout:
+            home_delivery:
+                address_title: 'Delivery address'
+            parcel_locker:
+                title: 'Parcel locker details'
+        pickup_point:
+            select: 'Select a parcel locker'
+            change: 'Change parcel locker'

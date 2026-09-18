@@ -1,0 +1,22 @@
+# Átvéve a bolt validators.hu.yaml-jából (2 foxpost-érintett sor, az alattuk
+# lévő kulcsfával: `app.form.foxpost_address`), a codeconjure.foxpost. prefix
+# alá, `address` néven. Megjegyzés: ez a fa NEM azonos a messages.hu.yaml
+# `codeconjure.foxpost.address` fájával (más domain, más mezőkészlet — a
+# bolt validators.hu.yaml-jában first_name/last_name is szerepel).
+codeconjure:
+    foxpost:
+        address:
+            phone_number:
+                not_blank: 'Kötelező a telefonszám megadása!'
+            last_name:
+                not_blank: 'Vezetéknév megadása kötelező!'
+            first_name:
+                not_blank: 'Keresztnév megadása kötelező!'
+            postcode:
+                not_blank: 'Irányítószám megadása kötelező!'
+            city:
+                not_blank: 'Város megadása kötelező!'
+            street:
+                not_blank: 'Utca, házszám megadása kötelező!'
+            country_code:
+                invalid: 'Foxpost csak Magyarországra szállít!'

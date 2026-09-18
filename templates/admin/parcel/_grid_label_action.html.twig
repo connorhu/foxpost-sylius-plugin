@@ -1,0 +1,4 @@
+{% if resource.barcode %}
+    <a href="{{ path('app_admin_foxpost_label_download_single', {id: resource.id}) }}"
+       class="ui mini button" target="_blank">Címke</a>
+{% endif %}

@@ -20,5 +20,8 @@ final class CodeConjureSyliusFoxPostExtension extends Extension
 
         $yamlLoader = new YamlFileLoader($container, new FileLocator(\dirname(__DIR__, 2) . '/src/Resources/config/app'));
         $yamlLoader->load('foxpost_parcel.yaml');
+        $yamlLoader->load('sylius_resource.yaml');
+        $yamlLoader->load('grid.yaml');
+        $yamlLoader->load('config.yaml');
     }
 }

@@ -1,0 +1,5 @@
+{% if resource.internalStatus.value not in ['registered','label_ready','packed','handed_over','in_transit','delivered'] %}
+    <form method="post" action="{{ path('app_admin_foxpost_parcel_register', {shipmentId: resource.shipment.id}) }}">
+        <button type="submit" class="ui mini orange button">Feladás</button>
+    </form>
+{% endif %}

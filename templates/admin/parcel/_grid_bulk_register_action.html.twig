@@ -1,0 +1,6 @@
+<form method="post" action="{{ path('app_admin_foxpost_parcel_bulk_register') }}">
+    {% for id in ids %}
+        <input type="hidden" name="ids[]" value="{{ id }}">
+    {% endfor %}
+    <button type="submit" class="ui mini orange button">Tömeges feladás</button>
+</form>

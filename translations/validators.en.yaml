@@ -1,0 +1,17 @@
+codeconjure:
+    foxpost:
+        address:
+            phone_number:
+                not_blank: 'Phone number is required!'
+            last_name:
+                not_blank: 'Last name is required!'
+            first_name:
+                not_blank: 'First name is required!'
+            postcode:
+                not_blank: 'Postcode is required!'
+            city:
+                not_blank: 'City is required!'
+            street:
+                not_blank: 'Street and house number are required!'
+            country_code:
+                invalid: 'FoxPost only delivers within Hungary!'

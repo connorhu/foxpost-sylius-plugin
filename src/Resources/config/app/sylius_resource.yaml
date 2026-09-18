@@ -1,0 +1,8 @@
+# src/Resources/config/app/sylius_resource.yaml
+# Átvéve: bolt config/packages/sylius_resource.yaml `app.foxpost_parcel` blokkja.
+sylius_resource:
+    resources:
+        app.foxpost_parcel:
+            classes:
+                model: CodeConjure\SyliusFoxPostPlugin\Entity\FoxpostParcel
+                repository: CodeConjure\SyliusFoxPostPlugin\Repository\FoxpostParcelRepository

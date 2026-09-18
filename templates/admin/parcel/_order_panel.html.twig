@@ -1,0 +1,91 @@
+{% set shipment = hookable_metadata.context.shipment %}
+{% set parcel = foxpost_parcel_for_shipment(shipment) %}
+
+{% if shipment.deliveryKindSlug is not null %}
+<div class="ui segment" style="margin-top: 0.5rem; border-left: 3px solid #f68b1e;">
+    <div class="ui small header" style="margin-bottom: 0.5rem;">
+        <i class="box icon"></i> FoxPost
+    </div>
+
+    {% if parcel is null %}
+        <form method="post" action="{{ path('app_admin_foxpost_parcel_register', {shipmentId: shipment.id}) }}">
+            <div class="ui mini form">
+                <div class="fields">
+                    <div class="field">
+                        <label>Méret</label>
+                        <select name="size" class="ui mini dropdown">
+                            <option value="">--</option>
+                            {% for s in ['xs','s','m','l','xl'] %}
+                                <option value="{{ s }}"
+                                    {% if shipment.method.foxpostDefaultSize == s %}selected{% endif %}>
+                                    {{ s|upper }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>COD (HUF)</label>
+                        <input type="number" name="cod" min="0" max="1000000" value="0" style="width:100px">
+                    </div>
+                    <div class="field">
+                        <label>Megjegyzés</label>
+                        <input type="text" name="comment" maxlength="50" style="width:150px">
+                    </div>
+                </div>
+                <button type="submit" class="ui mini orange button">
+                    <i class="upload icon"></i> FoxPost feladás
+                </button>
+            </div>
+        </form>
+
+    {% elseif parcel.internalStatus.value in ['registration_failed', 'validation_failed'] %}
+        <div class="ui tiny error message" style="margin-bottom:0.5rem">
+            <strong>Hiba:</strong> {{ parcel.lastApiError }}
+        </div>
+        <form method="post" action="{{ path('app_admin_foxpost_parcel_register', {shipmentId: shipment.id}) }}">
+            <button type="submit" class="ui mini orange button">
+                <i class="redo icon"></i> Újra
+            </button>
+        </form>
+
+    {% else %}
+        <div style="margin-bottom: 0.4rem;">
+            <span class="ui tiny label">{{ parcel.internalStatus.value }}</span>
+            {% if parcel.barcode %}
+                <span class="ui tiny orange label">{{ parcel.barcode }}</span>
+            {% endif %}
+            {% if parcel.foxpostStatus %}
+                <span class="ui tiny label">{{ parcel.foxpostStatus }}</span>
+            {% endif %}
+        </div>
+
+        <div>
+            {% if parcel.barcode %}
+                <a href="{{ path('app_admin_foxpost_label_download_single', {id: parcel.id}) }}"
+                   class="ui mini button" target="_blank">
+                    <i class="file pdf icon"></i> Címke
+                </a>
+            {% endif %}
+
+            {% if parcel.internalStatus.value in ['registered', 'label_ready'] %}
+                <form method="post" action="{{ path('app_admin_foxpost_parcel_hand_over', {id: parcel.id}) }}"
+                      style="display:inline-block">
+                    <button type="submit" class="ui mini green button">
+                        <i class="check icon"></i> Átadva
+                    </button>
+                </form>
+            {% endif %}
+
+            {% if parcel.internalStatus.value in ['registered', 'label_ready', 'packed'] %}
+                <form method="post" action="{{ path('app_admin_foxpost_parcel_cancel', {id: parcel.id}) }}"
+                      style="display:inline-block">
+                    <button type="submit" class="ui mini red button"
+                            onclick="return confirm('Biztosan törli a FoxPost csomagot?')">
+                        <i class="trash icon"></i> Mégse
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+{% endif %}

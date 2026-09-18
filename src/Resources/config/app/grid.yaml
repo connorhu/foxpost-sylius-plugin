@@ -1,0 +1,104 @@
+# src/Resources/config/app/grid.yaml
+# Átvéve: bolt config/packages/_sylius.yaml `app_admin_foxpost_parcel` blokkja
+# (1439-1526. sor), szó szerint, két cserével: az osztálynév a plugin
+# entitására, a templates: útvonalak a @CodeConjureSyliusFoxPostPlugin/admin/
+# parcel/… alakra.
+#
+# A `deliveryKind` mező HARMADIK, ezen felüli eltérés: a mag DeliveryKind enum
+# `->value`-ja slug (pl. `foxpost_home_delivery`), és a Sylius grid `string`
+# mezőtípusa a nyers property-t `(string) $value`-vel castolja — ez egy backed
+# enum példányon `Error: Object of class ... could not be converted to string`
+# hibát dob (lemérve: php -r 'enum F: int {case A=1;} echo (string) F::A;').
+# A `type: twig` + saját sablon így NEM választható, hanem KÖTELEZŐ.
+sylius_grid:
+    grids:
+        app_admin_foxpost_parcel:
+            driver:
+                name: doctrine/orm
+                options:
+                    class: CodeConjure\SyliusFoxPostPlugin\Entity\FoxpostParcel
+                    repository:
+                        method: createAdminGridQueryBuilder
+            sorting:
+                createdAt: desc
+            fields:
+                orderNumber:
+                    type: string
+                    label: app.ui.foxpost.order_number
+                    sortable: ~
+                barcode:
+                    type: string
+                    label: app.ui.foxpost.barcode
+                    sortable: ~
+                deliveryKind:
+                    type: twig
+                    label: app.ui.foxpost.delivery_kind
+                    options:
+                        template: '@CodeConjureSyliusFoxPostPlugin/admin/parcel/_grid_delivery_kind.html.twig'
+                internalStatus:
+                    type: string
+                    label: app.ui.foxpost.status
+                    sortable: ~
+                createdAt:
+                    type: datetime
+                    label: sylius.ui.created_at
+                    sortable: ~
+                labelGeneratedAt:
+                    type: datetime
+                    label: app.ui.foxpost.label_generated_at
+                    sortable: ~
+            filters:
+                orderNumber:
+                    type: string
+                    label: app.ui.foxpost.order_number
+                    options:
+                        fields: [orderNumber]
+                barcode:
+                    type: string
+                    label: app.ui.foxpost.barcode
+                    options:
+                        fields: [barcode]
+                internalStatus:
+                    type: select
+                    label: app.ui.foxpost.status
+                    form_options:
+                        multiple: true
+                        choices:
+                            app.ui.foxpost.status.eligible: eligible
+                            app.ui.foxpost.status.validation_failed: validation_failed
+                            app.ui.foxpost.status.registration_failed: registration_failed
+                            app.ui.foxpost.status.registered: registered
+                            app.ui.foxpost.status.label_ready: label_ready
+                            app.ui.foxpost.status.packed: packed
+                            app.ui.foxpost.status.handed_over: handed_over
+                            app.ui.foxpost.status.in_transit: in_transit
+                            app.ui.foxpost.status.delivered: delivered
+                            app.ui.foxpost.status.cancelled: cancelled
+            actions:
+                item:
+                    register:
+                        type: links
+                        label: app.ui.foxpost.register
+                        options:
+                            template: '@CodeConjureSyliusFoxPostPlugin/admin/parcel/_grid_register_action.html.twig'
+                    label:
+                        type: links
+                        label: app.ui.foxpost.label
+                        options:
+                            template: '@CodeConjureSyliusFoxPostPlugin/admin/parcel/_grid_label_action.html.twig'
+                    cancel:
+                        type: links
+                        label: app.ui.foxpost.cancel
+                        options:
+                            template: '@CodeConjureSyliusFoxPostPlugin/admin/parcel/_grid_cancel_action.html.twig'
+                bulk:
+                    register:
+                        type: links
+                        label: app.ui.foxpost.bulk_register
+                        options:
+                            template: '@CodeConjureSyliusFoxPostPlugin/admin/parcel/_grid_bulk_register_action.html.twig'
+                    label:
+                        type: links
+                        label: app.ui.foxpost.bulk_label
+                        options:
+                            template: '@CodeConjureSyliusFoxPostPlugin/admin/parcel/_grid_bulk_label_action.html.twig'

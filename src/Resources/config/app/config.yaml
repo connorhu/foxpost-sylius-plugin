@@ -1,0 +1,5 @@
+# src/Resources/config/app/config.yaml
+# A csomagautomata-választó widget form theme-je.
+twig:
+    form_themes:
+        - '@CodeConjureSyliusFoxPostPlugin/form/foxpost_pickup_point_widget.html.twig'

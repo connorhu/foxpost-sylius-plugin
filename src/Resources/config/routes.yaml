@@ -1,0 +1,18 @@
+# src/Resources/config/routes.yaml
+# Átvéve: bolt config/routes/sylius_admin.yaml `app_admin_foxpost_parcel` blokkja.
+# A templates: érték a plugin saját sablonjaira mutat (@CodeConjureSyliusFoxPostPlugin
+# a bundle Twig-névtere — l. src/CodeConjureSyliusFoxPostPlugin.php).
+#
+# A csomaglista (`index`) az egyetlen resource-route itt; a további hat route
+# (register/cancel/hand-over/bulk-register/label download single/bulk) a két
+# admin controller `#[Route]` attribútumaiból jön — ezeket a befogadó bolt
+# importálja (attribute-scan a plugin src/Controller könyvtárára).
+app_admin_foxpost_parcel:
+    resource: |
+        alias: app.foxpost_parcel
+        section: admin
+        only: [index]
+        templates: '@CodeConjureSyliusFoxPostPlugin/admin/parcel'
+        grid: app_admin_foxpost_parcel
+    type: sylius.resource
+    prefix: '/%sylius_admin.path_name%'

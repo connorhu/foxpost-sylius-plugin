@@ -1,0 +1,6 @@
+<form method="post" action="{{ path('app_admin_foxpost_label_download_bulk') }}">
+    {% for id in ids %}
+        <input type="hidden" name="ids[]" value="{{ id }}">
+    {% endfor %}
+    <button type="submit" class="ui mini button">Tömeges címke</button>
+</form>

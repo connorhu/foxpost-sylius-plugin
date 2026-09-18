@@ -36,5 +36,13 @@
         <service id="CodeConjure\SyliusFoxPostPlugin\FoxPostTrackingSyncService">
             <tag name="monolog.logger" channel="foxpost"/>
         </service>
+
+        <!-- Admin felület: controllerek, menü, form type, Twig -->
+        <service id="CodeConjure\SyliusFoxPostPlugin\Controller\FoxPostParcelController"/>
+        <service id="CodeConjure\SyliusFoxPostPlugin\Controller\FoxPostLabelController"/>
+        <service id="CodeConjure\SyliusFoxPostPlugin\Menu\AdminMenuListener"/>
+        <service id="CodeConjure\SyliusFoxPostPlugin\Form\Type\FoxPostPickupPointSelectType"/>
+        <service id="CodeConjure\SyliusFoxPostPlugin\Twig\FoxPostExtension"/>
+        <service id="CodeConjure\SyliusFoxPostPlugin\Twig\FoxPostRuntime"/>
     </services>
 </container>
