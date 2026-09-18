@@ -1,11 +1,48 @@
 sylius_twig_hooks:
     hooks:
+        # A 'shipment' nevet a SyliusShopBundle már foglalja (@SyliusShop/...),
+        # a prepend() ezt SOSEM tudja felülírni — a Symfony a saját bundle
+        # sorrendjét (nem a plugin sorrendjét) alkalmazza egy már létező
+        # hookable névre. Ez a bejegyzés emiatt ma HOLT: a hostnak kell saját
+        # config/packages/_sylius.yaml-jában felülregisztrálnia a plugin
+        # shipments.html.twig-jét erre a névre (lásd a README host-szerződés
+        # szakaszát), különben sem a FoxPost blokkok, sem a foxpost_fields
+        # nem jelenik meg. Bent hagyva, mert ártalmatlan, és egy jövőbeli
+        # Sylius-verzióban a hookable-prioritás kezelése változhat.
         'sylius_shop.checkout.select_shipping.content.form.shipments':
             shipment:
                 template: '@CodeConjureSyliusFoxPostPlugin/shop/checkout/select_shipping/shipments.html.twig'
                 priority: 0
 
+        # Ez viszont ÚJ név (a Sylius alapja nem definiálja) — a prepend()
+        # itt ténylegesen nyer, host-oldali beavatkozás nélkül.
         'sylius_shop.checkout.select_shipping.content.form.shipments.shipment':
             foxpost_fields:
                 template: '@CodeConjureSyliusFoxPostPlugin/shop/checkout/select_shipping/foxpost_fields.html.twig'
                 priority: -50
+
+        # A négy admin hook: mind ÚJ név, a prepend() itt is nyer. A pontos
+        # nevek és prioritások a bolt git-történetéből (config/packages/
+        # _sylius.yaml, a fb31f0d migrációs commit előtti állapot) —
+        # karakterre azonosak, csak a sablon útvonala lett rövidebb, mert a
+        # plugin lapos admin/channel és admin/shipping_method könyvtárba
+        # tette őket (Task 10).
+        'sylius_admin.channel.create.content.form.sections.general':
+            foxpost_label_page_size:
+                template: '@CodeConjureSyliusFoxPostPlugin/admin/channel/foxpost_label_page_size.html.twig'
+                priority: -10
+
+        'sylius_admin.channel.update.content.form.sections.general':
+            foxpost_label_page_size:
+                template: '@CodeConjureSyliusFoxPostPlugin/admin/channel/foxpost_label_page_size.html.twig'
+                priority: -10
+
+        'sylius_admin.shipping_method.create.content.form.configuration':
+            foxpost_default_size:
+                template: '@CodeConjureSyliusFoxPostPlugin/admin/shipping_method/foxpost_default_size.html.twig'
+                priority: 140
+
+        'sylius_admin.shipping_method.update.content.form.configuration':
+            foxpost_default_size:
+                template: '@CodeConjureSyliusFoxPostPlugin/admin/shipping_method/foxpost_default_size.html.twig'
+                priority: 140

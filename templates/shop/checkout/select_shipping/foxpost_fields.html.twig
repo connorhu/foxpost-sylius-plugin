@@ -1,6 +1,12 @@
 {% set form = hookable_metadata.context.form %}
-{% set order = hookable_metadata.context.order %}
-{% set billing = order.billingAddress %}
+{# A Sylius alapsablonja csak form-ot és index-et ad át a beágyazott hooknak,
+   order-t nem — ha a host nem regisztrálta felül a 'shipment' hookable-t a
+   plugin shipments.html.twig-jére (lásd a README host-szerződését), a
+   context.order hiányzik. Enélkül az őr nélkül a hookable_metadata.context.order
+   elérése önmagában RuntimeError-t dobna strict_variables mellett, MÉG a
+   négy mezőnkénti őr előtt. #}
+{% set order = (hookable_metadata.context.order is defined) ? hookable_metadata.context.order : null %}
+{% set billing = order ? order.billingAddress : null %}
 
 {% if form.foxpostSameAsBilling is defined and form.foxpostAddress is defined %}
 {# FoxPost házhozszállítás cím blokk #}

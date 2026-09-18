@@ -10,11 +10,46 @@ composer require codeconjure/foxpost-sylius-plugin
 
 ## A pénztár felülete — host-szerződés a checkout mezőkről
 
-A plugin `sylius_shop.checkout.select_shipping.content.form.shipments.shipment`
-hookja (`templates/shop/checkout/select_shipping/foxpost_fields.html.twig`)
-**csak olvassa** a szállítási shipment form négy mezőjét — nem ő hozza
-létre őket. A négy mezőt a hostnak kell hozzáadnia a shipment formhoz,
-pontosan ezekkel a nevekkel:
+**A hostnak saját magának kell felülregisztrálnia a `shipment` hookable-t.**
+A plugin két hookot ad a `sylius_shop.checkout.select_shipping.content.form.shipments`
+hookable-hez:
+
+- `shipment` — a `templates/shop/checkout/select_shipping/shipments.html.twig`,
+  ami a Stimulus controller wrappert (`data-controller="foxpost-shipping"`)
+  teszi ki minden shipment köré, és **`order`-t is átad** a beágyazott
+  `…shipments.shipment` hooknak.
+
+  Ez a név viszont **már foglalt**: a SyliusShopBundle saját maga is definiál
+  egy `shipment` hookot ugyanide (`@SyliusShop/...`), és a plugin
+  `prepend()`-je **nem tudja felülírni** egy már betöltött bundle saját
+  definícióját — a `PrependExtensionInterface` csak addig ér, amíg a
+  konfigurációt EGYMÁSSAL egyesíti, a hookable-nevek foglalását nem. Emiatt
+  ez a bejegyzés a plugin `hooks.yaml`-jában ma **holt**: amíg a host nem
+  regisztrálja felül explicit saját `config/packages/_sylius.yaml`-jában
+  (`priority` úgy, hogy nyerjen), a Sylius alap `shipment` sablonja fut,
+  ami **nem ad át `order`-t** a beágyazott hooknak, és a FoxPost-blokkok
+  (`foxpost_fields.html.twig`) meg sem jelennek — az bármelyik shipment-re
+  vonatkozó hook csak `form`-ot és `index`-et kap.
+
+  Ezt a hostnak kell megtennie:
+  ```yaml
+  sylius_twig_hooks:
+      hooks:
+          'sylius_shop.checkout.select_shipping.content.form.shipments':
+              shipment:
+                  template: '@CodeConjureSyliusFoxPostPlugin/shop/checkout/select_shipping/shipments.html.twig'
+                  priority: 0   # vagy magasabb, ha a host maga is hookol ide
+  ```
+
+  A `foxpost_fields.html.twig` erre az esetre — amikor a host elfelejti ezt
+  megtenni, és a beágyazott hook `order` nélkül fut — önmagát védi: a
+  `context.order`-t `is defined`-del olvassa, hiánya esetén a számlázási
+  cím emlékeztető blokk egyszerűen kimarad (nem hibázik), a négy checkout-
+  mezőtől függő két blokk pedig a lenti szerződés szerint viselkedik.
+
+- `foxpost_fields` — az alábbi négy mezőt olvassa (**csak olvassa**, nem ő
+  hozza létre őket). A négy mezőt a hostnak kell hozzáadnia a shipment
+  formhoz, pontosan ezekkel a nevekkel:
 
 | Mező | Típus | Mire kell |
 |---|---|---|
