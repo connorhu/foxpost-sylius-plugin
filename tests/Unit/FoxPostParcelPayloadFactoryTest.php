@@ -70,13 +70,6 @@ final class FoxPostParcelPayloadFactoryTest extends TestCase
         $shipment->method('getDeliveryKindSlug')->willReturn($deliveryKindSlug);
         $shipment->method('getPhoneNumber')->willReturn($phone);
 
-        // SZÁNDÉKOSAN true: a régi `isFoxpostSameAsBilling() ? billing :
-        // shipping` hármas emiatt a (rossz) számlázási címre ágazna. Ha ezt
-        // kihagynánk, az unconfigured stub alapértelmezése (false) a régi
-        // kódon is véletlenül a helyes ágra futna, és a teszt semmit sem
-        // mérne a #99 javításából.
-        $shipment->method('isFoxpostSameAsBilling')->willReturn(true);
-
         return $shipment;
     }
 

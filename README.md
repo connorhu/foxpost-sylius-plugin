@@ -41,33 +41,29 @@ hookable-hez:
                   priority: 0   # vagy magasabb, ha a host maga is hookol ide
   ```
 
-  A `foxpost_fields.html.twig` erre az esetre — amikor a host elfelejti ezt
-  megtenni, és a beágyazott hook `order` nélkül fut — önmagát védi: a
-  `context.order`-t `is defined`-del olvassa, hiánya esetén a számlázási
-  cím emlékeztető blokk egyszerűen kimarad (nem hibázik), a négy checkout-
-  mezőtől függő két blokk pedig a lenti szerződés szerint viselkedik.
+  A `foxpost_fields.html.twig` nem olvassa a `context.order`-t — a szállítási
+  cím a #99 óta az 1. lépésen dől el, ide már csak a módhoz tartozó két mező
+  (telefon, csomagautomata) tartozik, a lenti szerződés szerint.
 
-- `foxpost_fields` — az alábbi négy mezőt olvassa (**csak olvassa**, nem ő
-  hozza létre őket). A négy mezőt a hostnak kell hozzáadnia a shipment
-  formhoz, pontosan ezekkel a nevekkel:
+- `foxpost_fields` — az alábbi két mezőt olvassa (**csak olvassa**, nem ő
+  hozza létre őket). A mezőket a hostnak kell hozzáadnia a shipment
+  formhoz, pontosan ezekkel a nevekkel. A szállítási CÍM nem tartozik ide —
+  az a #99 óta az 1. lépésen dől el, a Sylius saját
+  `differentShippingAddress` kapcsolójával:
 
 | Mező | Típus | Mire kell |
 |---|---|---|
-| `foxpostSameAsBilling` | checkbox | FoxPost házhozszállítás: a szállítási cím a számlázási címmel egyezik-e |
-| `foxpostAddress` | beágyazott cím-form (`lastName`, `firstName`, `countryCode`, `postcode`, `city`, `street`, `phoneNumber` gyerekmezőkkel) | FoxPost házhozszállítás: kézzel megadott cím |
+| `phoneNumber` | szöveg | Címzett telefonszáma — a láthatóságát a Stimulus controller a választott mód `data-requires-recipient-phone` attribútuma szerint kapcsolja, a kötelezőségét a `recipient_phone_required` validációs csoport adja |
 | `pickupPointId` | hidden/szöveg | FoxPost csomagautomata: a kiválasztott automata azonosítója |
-| `phoneNumber` | szöveg | FoxPost csomagautomata: értesítési telefonszám |
 
-**Ha egy mező hiányzik a formról, a hozzá tartozó blokk a sablonban némán
-kimarad — nem hibázik.** A két blokk (házhozszállítás-cím, illetve
-csomagautomata) mindegyike a saját mezőit együtt ellenőrzi (`is defined`),
-és csak akkor renderel, ha mindegyik jelen van — így nem fordulhat elő
-félig kirajzolt blokk (pl. a checkbox látszik, de a hozzá tartozó cím-mezők
-nem). Ez azért fontos, mert egy `FormView` nem létező gyerekmezőjének
-közvetlen elérése (`form.valami.mégvalami`) Twig `RuntimeError`-t dob
-`strict_variables` mellett — ez bármelyik olyan boltot render-hibával
-állítaná le a pénztár szállítási lépésén, amelyik telepíti a plugint, de
-nem replikálja pontosan ezt a négy mezőt.
+**Ha egy mező hiányzik a formról, a hozzá tartozó panel a sablonban némán
+kimarad — nem hibázik.** A két panel (telefon, illetve csomagautomata)
+egymástól függetlenül ellenőrzi a saját mezőjét (`is defined`), és csak
+akkor renderel, ha az jelen van. Ez azért fontos, mert egy `FormView` nem
+létező gyerekmezőjének közvetlen elérése (`form.valami`) Twig
+`RuntimeError`-t dob `strict_variables` mellett — ez bármelyik olyan
+boltot render-hibával állítaná le a pénztár szállítási lépésén, amelyik
+telepíti a plugint, de nem replikálja pontosan ezt a két mezőt.
 
 **A bolt — a jelen (`codeconjure/egyhazzene-hu-bolt`) — ma ezt a négy mezőt
 a saját `App\Form\Extensions\CheckoutShipmentTypeExtension`-je adja hozzá.**

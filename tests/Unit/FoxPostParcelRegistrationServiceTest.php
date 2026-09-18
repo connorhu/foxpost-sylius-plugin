@@ -12,7 +12,6 @@ use CodeConjure\SyliusFoxPostPlugin\Entity\FoxpostParcelStatus;
 use CodeConjure\SyliusFoxPostPlugin\FoxPostParcelPayloadFactory;
 use CodeConjure\SyliusFoxPostPlugin\FoxPostParcelRegistrationService;
 use CodeConjure\SyliusFoxPostPlugin\Model\FoxPostShipmentInterface;
-use CodeConjure\SyliusFoxPostPlugin\Model\FoxPostShipmentTrait;
 use CodeConjure\SyliusFoxPostPlugin\Repository\FoxpostParcelRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Http\Mock\Client as MockClient;
@@ -161,8 +160,6 @@ final class FoxPostParcelRegistrationServiceTest extends TestCase
         ?string $phoneNumber,
     ): ShipmentInterface&FoxPostShipmentInterface {
         return new class($order, $phoneNumber) extends Shipment implements FoxPostShipmentInterface {
-            use FoxPostShipmentTrait;
-
             public function __construct(
                 private readonly OrderInterface $orderOverride,
                 private readonly ?string $phone,

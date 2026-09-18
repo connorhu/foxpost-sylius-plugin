@@ -2,15 +2,12 @@ import { Controller } from '@hotwired/stimulus';
 
 export default class extends Controller {
     static targets = [
-        'homeDeliverySection',
         'parcelLockerSection',
         'postalCode',
         'city',
         'pickupPointId',
         'phoneNumber',
-        'sameAsBillingCheckbox',
-        'billingAddressSummary',
-        'addressFields',
+        'recipientPhoneSection',
     ];
 
     static values = {
@@ -30,10 +27,6 @@ export default class extends Controller {
         this._updateVisibility();
     }
 
-    sameAsBillingChanged() {
-        this._updateAddressFieldsVisibility();
-    }
-
     _getSelectedDeliveryKind() {
         const checkedRadio = this.element.querySelector('input[type="radio"]:checked');
         if (!checkedRadio) {
@@ -43,36 +36,33 @@ export default class extends Controller {
         return card ? card.dataset.deliveryKind : null;
     }
 
+    _getSelectedRequiresRecipientPhone() {
+        const checkedRadio = this.element.querySelector('input[type="radio"]:checked');
+        if (!checkedRadio) {
+            return false;
+        }
+
+        // A `data-delivery-kind` attribútum CSAK akkor kerül ki, ha a módnak
+        // van FoxPost kindja — a `data-requires-recipient-phone` viszont
+        // MINDIG ('1' vagy '0'), tehát a `closest()` itt mindig talál.
+        const card = checkedRadio.closest('[data-requires-recipient-phone]');
+
+        return card ? card.dataset.requiresRecipientPhone === '1' : false;
+    }
+
     _updateVisibility() {
         const kind = this._getSelectedDeliveryKind();
-
-        if (this.hasHomeDeliverySectionTarget) {
-            this.homeDeliverySectionTarget.hidden = kind !== 'foxpost_home_delivery';
-        }
 
         if (this.hasParcelLockerSectionTarget) {
             this.parcelLockerSectionTarget.hidden = kind !== 'foxpost_parcel_locker';
         }
 
-        if (kind === 'foxpost_home_delivery') {
-            this._updateAddressFieldsVisibility();
+        if (this.hasRecipientPhoneSectionTarget) {
+            this.recipientPhoneSectionTarget.hidden = !this._getSelectedRequiresRecipientPhone();
         }
 
         if (kind === 'foxpost_parcel_locker') {
             this._initFoxPostWidget();
-        }
-    }
-
-    _updateAddressFieldsVisibility() {
-        const sameAsBilling = this.hasSameAsBillingCheckboxTarget
-            && this.sameAsBillingCheckboxTarget.checked;
-
-        if (this.hasBillingAddressSummaryTarget) {
-            this.billingAddressSummaryTarget.hidden = !sameAsBilling;
-        }
-
-        if (this.hasAddressFieldsTarget) {
-            this.addressFieldsTarget.hidden = sameAsBilling;
         }
     }
 
