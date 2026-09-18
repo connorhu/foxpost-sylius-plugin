@@ -2,6 +2,13 @@
 <container xmlns="http://symfony.com/schema/dic/services"
            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
            xsi:schemaLocation="http://symfony.com/schema/dic/services https://symfony.com/schema/dic/services/services-1.0.xsd">
+    <parameters>
+        <!-- A bolt-oldali városkereső route neve. A plugin nem ismerhet host
+             route-nevet; ezt a Task 14-ben a host állítja a saját route-jára.
+             Alapból null: a sablon ekkor a data-attribútumot ki sem teszi. -->
+        <parameter key="codeconjure.foxpost.city_lookup_route">null</parameter>
+    </parameters>
+
     <services>
         <defaults autowire="true" autoconfigure="true" public="false"/>
 
@@ -43,6 +50,11 @@
         <service id="CodeConjure\SyliusFoxPostPlugin\Menu\AdminMenuListener"/>
         <service id="CodeConjure\SyliusFoxPostPlugin\Form\Type\FoxPostPickupPointSelectType"/>
         <service id="CodeConjure\SyliusFoxPostPlugin\Twig\FoxPostExtension"/>
-        <service id="CodeConjure\SyliusFoxPostPlugin\Twig\FoxPostRuntime"/>
+        <service id="CodeConjure\SyliusFoxPostPlugin\Twig\FoxPostRuntime">
+            <bind key="$cityLookupRoute">%codeconjure.foxpost.city_lookup_route%</bind>
+        </service>
+
+        <!-- Pénztár: a checkout válaszd-ki-a-szállítást form validációs csoportjai -->
+        <service id="CodeConjure\SyliusFoxPostPlugin\Form\Extension\SelectShippingTypeExtension"/>
     </services>
 </container>

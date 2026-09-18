@@ -1,0 +1,14 @@
+{% set form = hookable_metadata.context.form %}
+{% set order = hookable_metadata.context.order %}
+
+{% for key, shipment in order.shipments %}
+    {% set city_lookup_url = foxpost_city_lookup_url() %}
+    <div
+        data-controller="foxpost-shipping"
+        {% if city_lookup_url %}data-foxpost-shipping-city-lookup-url-value="{{ city_lookup_url }}"{% endif %}
+    >
+        {% hook 'shipment' with { 'form': form.shipments[key], 'index': loop.index, 'order': order } %}
+    </div>
+{% else %}
+    {% hook 'shipment#unavailable' %}
+{% endfor %}

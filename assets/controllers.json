@@ -1,0 +1,16 @@
+{
+    "controllers": {
+        "codeconjure/foxpost-sylius-plugin": {
+            "foxpost-shipping": {
+                "main": "controllers/foxpost_shipping_controller.js",
+                "fetch": "eager",
+                "enabled": true
+            },
+            "foxpost-pickup-point": {
+                "main": "controllers/foxpost_pickup_point_controller.js",
+                "fetch": "eager",
+                "enabled": true
+            }
+        }
+    }
+}

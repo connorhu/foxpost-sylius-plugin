@@ -31,6 +31,10 @@ final class FoxPostExtension extends AbstractExtension
                 'foxpost_parcel_for_shipment',
                 [FoxPostRuntime::class, 'foxpostParcelForShipment'],
             ),
+            new TwigFunction(
+                'foxpost_city_lookup_url',
+                [FoxPostRuntime::class, 'cityLookupUrl'],
+            ),
         ];
     }
 }

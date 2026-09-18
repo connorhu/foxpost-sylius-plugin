@@ -1,0 +1,54 @@
+{% set form = hookable_metadata.context.form %}
+{% set order = hookable_metadata.context.order %}
+{% set billing = order.billingAddress %}
+
+{# FoxPost házhozszállítás cím blokk #}
+<div
+    data-foxpost-shipping-target="homeDeliverySection"
+    hidden
+    class="my-3 p-3 border rounded"
+>
+    {{- form_errors(form.foxpostSameAsBilling) -}}
+
+    {# Checkbox: szállítási cím = számlázási cím #}
+    <div class="form-check mb-3">
+        {{ form_widget(form.foxpostSameAsBilling, { attr: { class: 'form-check-input' } }) }}
+    </div>
+
+    {# Számlázási cím emlékeztető (látható, ha a checkbox be van pipálva) #}
+    {% if billing %}
+        <div
+            data-foxpost-shipping-target="billingAddressSummary"
+            class="text-muted small mb-3"
+        >
+            <i class="ti ti-map-pin me-1"></i>
+            Cím: {{ billing.lastName }} {{ billing.firstName }}, {{ billing.postcode }} {{ billing.city }}, {{ billing.street }}
+        </div>
+    {% endif %}
+
+    {# Cím mezők (látható, ha a checkbox nincs bepipálva) #}
+    <div data-foxpost-shipping-target="addressFields" hidden>
+        <h5 class="mb-3">{{ 'app.checkout.foxpost_home_delivery.address_title'|trans }}</h5>
+        {{ form_row(form.foxpostAddress.lastName) }}
+        {{ form_row(form.foxpostAddress.firstName) }}
+        {{ form_row(form.foxpostAddress.countryCode) }}
+        {{ form_row(form.foxpostAddress.postcode) }}
+        {{ form_row(form.foxpostAddress.city) }}
+        {{ form_row(form.foxpostAddress.street) }}
+    </div>
+
+    {# Telefonszám mindig látszik #}
+    {{ form_row(form.foxpostAddress.phoneNumber) }}
+</div>
+
+{# FoxPost csomagautomata blokk #}
+<div
+    data-foxpost-shipping-target="parcelLockerSection"
+    hidden
+    class="my-3 p-3 border rounded"
+>
+    <h5 class="mb-3">{{ 'app.checkout.foxpost_parcel_locker.title'|trans }}</h5>
+    <div id="foxpost-widget-container" class="mb-3"></div>
+    {{ form_row(form.pickupPointId) }}
+    {{ form_row(form.phoneNumber) }}
+</div>

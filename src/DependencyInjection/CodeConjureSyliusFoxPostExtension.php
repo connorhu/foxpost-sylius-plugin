@@ -23,5 +23,6 @@ final class CodeConjureSyliusFoxPostExtension extends Extension
         $yamlLoader->load('sylius_resource.yaml');
         $yamlLoader->load('grid.yaml');
         $yamlLoader->load('config.yaml');
+        $yamlLoader->load('hooks.yaml');
     }
 }

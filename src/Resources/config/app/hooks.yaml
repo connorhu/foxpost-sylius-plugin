@@ -1,0 +1,11 @@
+sylius_twig_hooks:
+    hooks:
+        'sylius_shop.checkout.select_shipping.content.form.shipments':
+            shipment:
+                template: '@CodeConjureSyliusFoxPostPlugin/shop/checkout/select_shipping/shipments.html.twig'
+                priority: 0
+
+        'sylius_shop.checkout.select_shipping.content.form.shipments.shipment':
+            foxpost_fields:
+                template: '@CodeConjureSyliusFoxPostPlugin/shop/checkout/select_shipping/foxpost_fields.html.twig'
+                priority: -50
