@@ -9,16 +9,13 @@ use CodeConjure\SyliusFoxPostPlugin\Model\FoxPostShipmentInterface;
 use CodeConjure\SyliusFoxPostPlugin\Model\FoxPostShippingMethodInterface;
 use Sylius\Bundle\ShopBundle\Form\Type as ShopTypes;
 use Sylius\Component\Core\Model\OrderInterface;
-use Sylius\Component\Core\Model\ShippingMethodInterface;
 use Symfony\Component\Form\AbstractTypeExtension;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 class SelectShippingTypeExtension extends AbstractTypeExtension
 {
-    public const string FOXPOST_HOME_DELIVERY_TO_INVOICE_ADDRESS_VALIDATION_GROUP = 'foxpost_home_delivery_to_invoice_address';
-
-    public const string FOXPOST_HOME_DELIVERY_VALIDATION_GROUP = 'foxpost_home_delivery';
+    public const string RECIPIENT_PHONE_VALIDATION_GROUP = 'recipient_phone_required';
 
     public const string FOXPOST_PARCEL_LOCKER_VALIDATION_GROUP = 'foxpost_parcel_locker';
 
@@ -32,31 +29,28 @@ class SelectShippingTypeExtension extends AbstractTypeExtension
                     return ['Default'];
                 }
 
+                $groups = ['sylius'];
+
                 foreach ($data->getShipments() as $shipment) {
                     assert($shipment instanceof FoxPostShipmentInterface);
                     $method = $shipment->getMethod();
-                    assert($method instanceof ShippingMethodInterface);
-                    assert($method instanceof FoxPostShippingMethodInterface);
 
-                    $deliveryKind = DeliveryKind::tryFrom($method->getDeliveryKindSlug() ?? '');
-
-                    if ($deliveryKind === DeliveryKind::HomeDelivery &&
-                        $shipment->isFoxpostSameAsBilling() === true) {
-                        return [self::FOXPOST_HOME_DELIVERY_TO_INVOICE_ADDRESS_VALIDATION_GROUP];
+                    // A címzett-telefon a MÓD flagjéből jön: a futár is kéri,
+                    // pedig neki nincs FoxPost deliveryKindja; a személyes
+                    // átvétel pedig nem kéri, pedig szintén nincs.
+                    if ($method instanceof FoxPostShippingMethodInterface && $method->requiresRecipientPhone()) {
+                        $groups[] = self::RECIPIENT_PHONE_VALIDATION_GROUP;
                     }
 
-                    $validationGroup = match ($deliveryKind) {
-                        DeliveryKind::HomeDelivery => ['sylius', self::FOXPOST_HOME_DELIVERY_VALIDATION_GROUP],
-                        DeliveryKind::ParcelLocker => ['sylius', self::FOXPOST_PARCEL_LOCKER_VALIDATION_GROUP],
-                        default => null,
-                    };
-
-                    if ($validationGroup !== null) {
-                        return $validationGroup;
+                    // Az átvételi pont kötelezősége KÜLÖN szabály — ma
+                    // véletlenül esik egybe a telefonéval.
+                    if ($method instanceof FoxPostShippingMethodInterface
+                        && DeliveryKind::tryFrom($method->getDeliveryKindSlug() ?? '') === DeliveryKind::ParcelLocker) {
+                        $groups[] = self::FOXPOST_PARCEL_LOCKER_VALIDATION_GROUP;
                     }
                 }
 
-                return ['sylius'];
+                return array_values(array_unique($groups));
             },
         ]);
     }
