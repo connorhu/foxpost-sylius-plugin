@@ -11,6 +11,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\ShipmentInterface;
+use Sylius\Component\Core\Model\ShippingMethodInterface;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
@@ -27,7 +28,11 @@ final class SelectShippingValidationGroupsTest extends TestCase
     /** @return array<string> */
     private function groupsFor(?string $deliveryKindSlug, bool $requiresPhone): array
     {
-        $method = $this->createStub(FoxPostShippingMethodInterface::class);
+        // Ugyanaz a metszet-stub minta, mint a shipmenten: getMethod()
+        // Sylius ShippingMethodInterface-t ígér, a valós host mód-entitása
+        // pedig egyszerre az és FoxPostShippingMethodInterface is — a
+        // plugin publikált kontraktusát ezért nem kell emiatt bővíteni.
+        $method = $this->createStubForIntersectionOfInterfaces([ShippingMethodInterface::class, FoxPostShippingMethodInterface::class]);
         $method->method('getDeliveryKindSlug')->willReturn($deliveryKindSlug);
         $method->method('requiresRecipientPhone')->willReturn($requiresPhone);
 
