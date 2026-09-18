@@ -1,6 +1,6 @@
 {
     "controllers": {
-        "codeconjure/foxpost-sylius-plugin": {
+        "@codeconjure/foxpost-sylius-plugin": {
             "foxpost-shipping": {
                 "main": "controllers/foxpost_shipping_controller.js",
                 "fetch": "eager",

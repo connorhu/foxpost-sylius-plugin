@@ -1,5 +1,5 @@
 {
-    "name": "codeconjure/foxpost-sylius-plugin",
+    "name": "@codeconjure/foxpost-sylius-plugin",
     "description": "FoxPost szállítási integráció Syliushoz: csomagfeladás, címke, nyomkövetés.",
     "license": "MIT",
     "version": "1.0.0",
