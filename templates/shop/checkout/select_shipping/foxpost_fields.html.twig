@@ -2,6 +2,7 @@
 {% set order = hookable_metadata.context.order %}
 {% set billing = order.billingAddress %}
 
+{% if form.foxpostSameAsBilling is defined and form.foxpostAddress is defined %}
 {# FoxPost házhozszállítás cím blokk #}
 <div
     data-foxpost-shipping-target="homeDeliverySection"
@@ -40,7 +41,9 @@
     {# Telefonszám mindig látszik #}
     {{ form_row(form.foxpostAddress.phoneNumber) }}
 </div>
+{% endif %}
 
+{% if form.pickupPointId is defined and form.phoneNumber is defined %}
 {# FoxPost csomagautomata blokk #}
 <div
     data-foxpost-shipping-target="parcelLockerSection"
@@ -52,3 +55,4 @@
     {{ form_row(form.pickupPointId) }}
     {{ form_row(form.phoneNumber) }}
 </div>
+{% endif %}
