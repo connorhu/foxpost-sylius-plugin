@@ -62,9 +62,9 @@ final class EligibilityChecker
 
         // HD-specific
         if ($kind === DeliveryKind::HomeDelivery) {
-            $address = $shipment->isFoxpostSameAsBilling()
-                ? $order->getBillingAddress()
-                : $order->getShippingAddress();
+            // A cím MINDIG a szállítási cím, ugyanazért, amiért a
+            // FoxPostParcelPayloadFactoryben: a #99 óta az 1. lépés állítja elő.
+            $address = $order->getShippingAddress();
 
             if ($address === null || empty($address->getPostcode())) {
                 $errors[] = ['code' => 'missing_zip', 'message' => 'Hiányzó irányítószám.'];
