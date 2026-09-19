@@ -8,6 +8,7 @@ use CodeConjure\FoxPost\DeliveryKind;
 use CodeConjure\SyliusFoxPostPlugin\EligibilityChecker;
 use CodeConjure\SyliusFoxPostPlugin\EligibilityResult;
 use CodeConjure\SyliusFoxPostPlugin\Model\FoxPostShipmentInterface;
+use CodeConjure\SyliusFoxPostPlugin\Model\FoxPostShippingMethodInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\Address;
@@ -15,6 +16,8 @@ use Sylius\Component\Core\Model\Order;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\Shipment;
 use Sylius\Component\Core\Model\ShipmentInterface;
+use Sylius\Component\Core\Model\ShippingMethod;
+use Sylius\Component\Shipping\Model\ShippingMethodInterface;
 
 /**
  * A FoxPost feladhatóság-ellenőrzés SZERZŐDÉSE.
@@ -267,12 +270,39 @@ final class EligibilityCheckerTest extends TestCase
     }
 
     /**
-     * A csomagautomata hibakódjai NEM jelennek meg házhozszállításnál — akkor
-     * sem, ha a telefonszám hiányzik.
+     * A telefonszám kötelezőségét a MÓD `requiresRecipientPhone()` flagje
+     * dönti el, NEM a delivery kind — ez az I1 javítás lényege. Korábban a
+     * kód a telefont KIZÁRÓLAG a ParcelLocker ágon nézte, így egy FoxPost
+     * házhozszállítás üres telefonszámmal simán átment volna az
+     * eligibility-n, a FoxPostParcelPayloadFactory pedig `recipientPhone: ''`-t
+     * küldött volna ki. Ez a teszt a régi kód ellen buk (ineligible helyett
+     * eligible-t adna vissza).
      */
-    public function testHomeDeliveryIsNotCheckedForLockerFields(): void
+    public function testAHomeDeliveryShipmentWithoutAPhoneIsIneligibleWhenTheMethodRequiresIt(): void
     {
         $shipment = $this->homeDeliveryShipment(phoneNumber: null);
+
+        self::assertSame(['missing_phone'], $this->codes($this->checker->check($shipment)));
+    }
+
+    /**
+     * Fordítva is igaz: ha a MÓD nem kéri a telefont, az üres szám nem hiba —
+     * a szabály tényleg a flaghez van kötve, nem a delivery kindhez.
+     */
+    public function testAHomeDeliveryShipmentWithoutAPhoneIsEligibleWhenTheMethodDoesNotRequireIt(): void
+    {
+        $shipment = $this->homeDeliveryShipment(phoneNumber: null, requiresRecipientPhone: false);
+
+        self::assertTrue($this->checker->check($shipment)->eligible);
+    }
+
+    /**
+     * A csomagautomata-specifikus hibakód (`missing_locker_id`) NEM jelenik
+     * meg házhozszállításnál — ez a delivery kindhez kötött ág marad.
+     */
+    public function testHomeDeliveryIsNotCheckedForTheLockerId(): void
+    {
+        $shipment = $this->homeDeliveryShipment();
 
         self::assertTrue($this->checker->check($shipment)->eligible);
     }
@@ -379,10 +409,11 @@ final class EligibilityCheckerTest extends TestCase
         ?string $pickupPointId = null,
         ?string $phoneNumber = null,
         ?OrderInterface $order = null,
+        bool $requiresRecipientPhone = true,
     ): ShipmentInterface&FoxPostShipmentInterface {
         $order ??= $this->order();
 
-        return new class($deliveryKindSlug, $pickupPointId, $phoneNumber, $order) extends Shipment implements FoxPostShipmentInterface {
+        $shipment = new class($deliveryKindSlug, $pickupPointId, $phoneNumber, $order) extends Shipment implements FoxPostShipmentInterface {
             public function __construct(
                 private readonly ?string $deliveryKindSlug,
                 private readonly ?string $pickupPoint,
@@ -412,21 +443,61 @@ final class EligibilityCheckerTest extends TestCase
                 return $this->orderOverride;
             }
         };
+
+        // A telefon-kötelezőséget az EligibilityChecker a MÓD
+        // `requiresRecipientPhone()`-jából olvassa (I1 javítás), ezért a
+        // teszt-shipmenthez mindig kell egy hozzá tartozó, ezt az interfészt
+        // megvalósító mód is — enélkül `getMethod()` nullt adna, és a checker
+        // sosem jelezne hiányzó telefont.
+        $shipment->setMethod($this->shippingMethod($requiresRecipientPhone));
+
+        return $shipment;
+    }
+
+    private function shippingMethod(bool $requiresRecipientPhone): ShippingMethodInterface&FoxPostShippingMethodInterface
+    {
+        return new class($requiresRecipientPhone) extends ShippingMethod implements FoxPostShippingMethodInterface {
+            public function __construct(private readonly bool $requiresPhone)
+            {
+                parent::__construct();
+            }
+
+            public function getFoxpostDefaultSize(): ?string
+            {
+                return null;
+            }
+
+            public function setFoxpostDefaultSize(?string $foxpostDefaultSize): void
+            {
+            }
+
+            public function requiresRecipientPhone(): bool
+            {
+                return $this->requiresPhone;
+            }
+
+            public function getDeliveryKindSlug(): ?string
+            {
+                return null;
+            }
+        };
     }
 
     private function parcelLockerShipment(
         ?OrderInterface $order = null,
         ?string $pickupPointId = 'HU1234',
         ?string $phoneNumber = '+36301234567',
+        bool $requiresRecipientPhone = true,
     ): ShipmentInterface&FoxPostShipmentInterface {
-        return $this->shipment(DeliveryKind::ParcelLocker->value, $pickupPointId, $phoneNumber, order: $order);
+        return $this->shipment(DeliveryKind::ParcelLocker->value, $pickupPointId, $phoneNumber, order: $order, requiresRecipientPhone: $requiresRecipientPhone);
     }
 
     private function homeDeliveryShipment(
         ?OrderInterface $order = null,
         ?string $phoneNumber = '+36301234567',
+        bool $requiresRecipientPhone = true,
     ): ShipmentInterface&FoxPostShipmentInterface {
-        return $this->shipment(DeliveryKind::HomeDelivery->value, phoneNumber: $phoneNumber, order: $order);
+        return $this->shipment(DeliveryKind::HomeDelivery->value, phoneNumber: $phoneNumber, order: $order, requiresRecipientPhone: $requiresRecipientPhone);
     }
 
     private function setId(ShipmentInterface&FoxPostShipmentInterface $shipment, int $id): void
