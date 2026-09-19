@@ -6,6 +6,7 @@ namespace CodeConjure\SyliusFoxPostPlugin;
 
 use CodeConjure\FoxPost\DeliveryKind;
 use CodeConjure\SyliusFoxPostPlugin\Model\FoxPostShipmentInterface;
+use CodeConjure\SyliusFoxPostPlugin\Model\FoxPostShippingMethodInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\ShipmentInterface;
 
@@ -44,7 +45,8 @@ final class EligibilityChecker
             ];
         }
 
-        // APM-specific
+        // APM-specific: a csomagpont-azonosító kizárólag a csomagautomatás
+        // ágon kötelező, ez marad a delivery kindhez kötve.
         if ($kind === DeliveryKind::ParcelLocker) {
             if (empty($shipment->getPickupPointId())) {
                 $errors[] = [
@@ -52,12 +54,26 @@ final class EligibilityChecker
                     'message' => 'Hiányzó csomagautomata azonosító.',
                 ];
             }
-            if (empty($shipment->getPhoneNumber())) {
-                $errors[] = [
-                    'code' => 'missing_phone',
-                    'message' => 'Hiányzó telefonszám.',
-                ];
-            }
+        }
+
+        // A telefonszám kötelezőségét NEM a delivery kind dönti el, hanem a
+        // MÓD `requiresRecipientPhone()` flagje — ugyanaz a szabály, amit a
+        // bolt (a host alkalmazás) `Shipment` entitása is használ. Korábban ez a
+        // feltétel a ParcelLocker ághoz volt kötve, ezért egy üres
+        // telefonszámú FoxPost házhozszállítás átment az eligibility-n, és a
+        // FoxPostParcelPayloadFactory `recipientPhone: ''`-t küldött ki a
+        // FoxPost felé. A pickup-point ellenőrzés szándékosan marad a kindhez
+        // kötve: a két szabály független egymástól.
+        $method = $shipment->getMethod();
+        if (
+            $method instanceof FoxPostShippingMethodInterface
+            && $method->requiresRecipientPhone()
+            && empty($shipment->getPhoneNumber())
+        ) {
+            $errors[] = [
+                'code' => 'missing_phone',
+                'message' => 'Hiányzó telefonszám.',
+            ];
         }
 
         // HD-specific
