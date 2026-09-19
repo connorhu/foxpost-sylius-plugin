@@ -12,7 +12,6 @@ use CodeConjure\SyliusFoxPostPlugin\Entity\FoxpostParcelStatus;
 use CodeConjure\SyliusFoxPostPlugin\FoxPostParcelPayloadFactory;
 use CodeConjure\SyliusFoxPostPlugin\FoxPostParcelRegistrationService;
 use CodeConjure\SyliusFoxPostPlugin\Model\FoxPostShipmentInterface;
-use CodeConjure\SyliusFoxPostPlugin\Model\FoxPostShipmentTrait;
 use CodeConjure\SyliusFoxPostPlugin\Repository\FoxpostParcelRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Http\Mock\Client as MockClient;
@@ -148,7 +147,10 @@ final class FoxPostParcelRegistrationServiceTest extends TestCase
 
         $order = new Order();
         $order->setNumber('2026/00042');
-        $order->setBillingAddress($address);
+        // A #99 óta a factory MINDIG a szállítási címet olvassa — a
+        // számlázási cím itt lényegtelen, de a valós rendelésen is mindig
+        // kitöltött.
+        $order->setShippingAddress($address);
 
         return $order;
     }
@@ -158,8 +160,6 @@ final class FoxPostParcelRegistrationServiceTest extends TestCase
         ?string $phoneNumber,
     ): ShipmentInterface&FoxPostShipmentInterface {
         return new class($order, $phoneNumber) extends Shipment implements FoxPostShipmentInterface {
-            use FoxPostShipmentTrait;
-
             public function __construct(
                 private readonly OrderInterface $orderOverride,
                 private readonly ?string $phone,

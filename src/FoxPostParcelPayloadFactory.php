@@ -17,7 +17,7 @@ final class FoxPostParcelPayloadFactory
     /**
      * Build a CreateParcelRequest from a Shipment, with optional field overrides.
      *
-     * Address source: uses billing address when foxpostSameAsBilling=true, shipping address otherwise.
+     * Address source: always the order's shipping address.
      *
      * @param array<string, mixed> $overrides
      */
@@ -34,9 +34,10 @@ final class FoxPostParcelPayloadFactory
             ));
         }
 
-        $address = $shipment->isFoxpostSameAsBilling()
-            ? $order->getBillingAddress()
-            : $order->getShippingAddress();
+        // A cím MINDIG a szállítási cím: a #99 óta az 1. lépés állítja elő
+        // (a Sylius `differentShippingAddress` kapcsolójával), tehát nincs
+        // olyan ág, ahol a számlázási cím lenne a címzetté.
+        $address = $order->getShippingAddress();
 
         $recipientName = trim(
             ($address?->getFirstName() ?? '') . ' ' . ($address?->getLastName() ?? ''),

@@ -1,55 +1,31 @@
-{% set form = hookable_metadata.context.form %}
-{# A Sylius alapsablonja csak form-ot és index-et ad át a beágyazott hooknak,
-   order-t nem — ha a host nem regisztrálta felül a 'shipment' hookable-t a
-   plugin shipments.html.twig-jére (lásd a README host-szerződését), a
-   context.order hiányzik. Enélkül az őr nélkül a hookable_metadata.context.order
-   elérése önmagában RuntimeError-t dobna strict_variables mellett, MÉG a
-   négy mezőnkénti őr előtt. #}
-{% set order = (hookable_metadata.context.order is defined) ? hookable_metadata.context.order : null %}
-{% set billing = order ? order.billingAddress : null %}
+{# A 2. lépés mód-specifikus mezői (#99, #112).
 
-{% if form.foxpostSameAsBilling is defined and form.foxpostAddress is defined %}
-{# FoxPost házhozszállítás cím blokk #}
+   A HÁZHOZSZÁLLÍTÁSI CÍM BLOKK MEGSZŰNT: a szállítási cím a #99 óta az 1.
+   lépésen dől el, a Sylius saját `differentShippingAddress` kapcsolójával és
+   a `kind = shipping` címjegyzékkel. A `Rendelés 2. lépés.dc.html` sem rajzol
+   címmezőt ide — csak egy olvasható recapot, amit a bolt
+   `select_shipping/recap.html.twig`-je ad.
+
+   Ami itt marad, az a MÓDHOZ tartozik, nem a címhez: a címzett telefonja és
+   a csomagautomata. Mindkettő feltételes panel, ahogy a design is mutatja
+   (`needsPoint`). #}
+{% set form = hookable_metadata.context.form %}
+
+{% if form.phoneNumber is defined %}
+{# Címzett telefonszáma. A láthatóságot a Stimulus controller kapcsolja a
+   választott mód `data-requires-recipient-phone` attribútuma szerint; a
+   KÖTELEZŐSÉGET a szerveroldalon a `recipient_phone_required` validációs
+   csoport adja (SelectShippingTypeExtension). #}
 <div
-    data-foxpost-shipping-target="homeDeliverySection"
+    data-foxpost-shipping-target="recipientPhoneSection"
     hidden
     class="my-3 p-3 border rounded"
 >
-    {{- form_errors(form.foxpostSameAsBilling) -}}
-
-    {# Checkbox: szállítási cím = számlázási cím #}
-    <div class="form-check mb-3">
-        {{ form_widget(form.foxpostSameAsBilling, { attr: { class: 'form-check-input' } }) }}
-    </div>
-
-    {# Számlázási cím emlékeztető (látható, ha a checkbox be van pipálva) #}
-    {% if billing %}
-        <div
-            data-foxpost-shipping-target="billingAddressSummary"
-            class="text-muted small mb-3"
-        >
-            <i class="ti ti-map-pin me-1"></i>
-            Cím: {{ billing.lastName }} {{ billing.firstName }}, {{ billing.postcode }} {{ billing.city }}, {{ billing.street }}
-        </div>
-    {% endif %}
-
-    {# Cím mezők (látható, ha a checkbox nincs bepipálva) #}
-    <div data-foxpost-shipping-target="addressFields" hidden>
-        <h5 class="mb-3">{{ 'app.checkout.foxpost_home_delivery.address_title'|trans }}</h5>
-        {{ form_row(form.foxpostAddress.lastName) }}
-        {{ form_row(form.foxpostAddress.firstName) }}
-        {{ form_row(form.foxpostAddress.countryCode) }}
-        {{ form_row(form.foxpostAddress.postcode) }}
-        {{ form_row(form.foxpostAddress.city) }}
-        {{ form_row(form.foxpostAddress.street) }}
-    </div>
-
-    {# Telefonszám mindig látszik #}
-    {{ form_row(form.foxpostAddress.phoneNumber) }}
+    {{ form_row(form.phoneNumber) }}
 </div>
 {% endif %}
 
-{% if form.pickupPointId is defined and form.phoneNumber is defined %}
+{% if form.pickupPointId is defined %}
 {# FoxPost csomagautomata blokk #}
 <div
     data-foxpost-shipping-target="parcelLockerSection"
@@ -59,6 +35,5 @@
     <h5 class="mb-3">{{ 'app.checkout.foxpost_parcel_locker.title'|trans }}</h5>
     <div id="foxpost-widget-container" class="mb-3"></div>
     {{ form_row(form.pickupPointId) }}
-    {{ form_row(form.phoneNumber) }}
 </div>
 {% endif %}
