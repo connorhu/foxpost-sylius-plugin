@@ -3,10 +3,10 @@
 # A templates: érték a plugin saját sablonjaira mutat (@CodeConjureSyliusFoxPostPlugin
 # a bundle Twig-névtere — l. src/CodeConjureSyliusFoxPostPlugin.php).
 #
-# A csomaglista (`index`) az egyetlen resource-route itt; a további hat route
-# (register/cancel/hand-over/bulk-register/label download single/bulk) a két
-# admin controller `#[Route]` attribútumaiból jön — ezeket a befogadó bolt
-# importálja (attribute-scan a plugin src/Controller könyvtárára).
+# A csomaglista (`index`) az egyetlen resource-route; a további hat route a
+# két admin controller `#[Route]` attribútumaiból jön, a fájl alján lévő
+# attribute-importtal. A befogadó boltnak így EGYETLEN importja van: ezt a
+# fájlt kell behúznia (l. docs/installation.md).
 app_admin_foxpost_parcel:
     resource: |
         alias: app.foxpost_parcel
@@ -16,3 +16,17 @@ app_admin_foxpost_parcel:
         grid: app_admin_foxpost_parcel
     type: sylius.resource
     prefix: '/%sylius_admin.path_name%'
+
+# A két admin controller `#[Route]` attribútumai (register / cancel /
+# hand-over / bulk-register / label download single / bulk) — a #194 óta a
+# plugin maga importálja őket, nem a befogadó bolt. Korábban ez a blokk a
+# host `config/routes/codeconjure_foxpost.yaml`-jában élt, és a hibamód néma
+# volt: a hat route egyszerűen nem létezett, a csomaglista gombjai pedig
+# `RouteNotFoundException`-nel álltak le az első kattintásnál.
+#
+# A bundle-alias (`@CodeConjureSyliusFoxPostPlugin`) a plugin gyökerére mutat
+# (l. CodeConjureSyliusFoxPostPlugin::getPath()), tehát ez ugyanaz a könyvtár,
+# amit a host importja célzott.
+codeconjure_foxpost_controllers:
+    resource: '@CodeConjureSyliusFoxPostPlugin/src/Controller/'
+    type: attribute
