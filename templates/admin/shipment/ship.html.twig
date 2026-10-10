@@ -1,0 +1,42 @@
+{# A host admin rendelés-oldalának szállítási paneljében a feladás-gomb.
+
+   A `sylius_admin.order.show.content.sections.shipments.item.actions` → `ship`
+   hookable egy LiveComponent (`sylius_admin:shipment:ship_form`), ami a
+   megjelenítendő sablont `props.template`-ként kapja. A #193 előtt ez a
+   FoxPost-ág a BOLT `templates/bundles/SyliusAdminBundle/shipment/component/
+   ship.html.twig` felülírásában élt — a bolt sablonja ismerte a host enum két
+   FoxPost case-ét, a plugin route nevét és egy fordítás nélküli magyar
+   feliratot. Így egy másik bolt nem kapta meg a gombot, a mi boltunk pedig a
+   plugin nélkül `RouteNotFoundException`-re futott.
+
+   A `ship` kulcsot a SyliusAdminBundle maga definiálja, ezért a plugin
+   `prepend()`-je NEM tudja átállítani (ugyanaz a határ, amit a hooks.yaml
+   fejléce ír le a `shipment` hookable-nél): a `props.template` cseréje a
+   befogadó bolt egy sora — lásd a README host-szerződés szakaszát.
+
+   Ami nem a FoxPost dolga, azt változatlanul a Sylius alapsablonja rendereli;
+   a plugin eltávolítása után a host egyetlen config-sorának törlésével a panel
+   visszaáll. #}
+{% form_theme form '@SyliusAdmin/shared/form_theme.html.twig' %}
+
+{% if foxpost_handles_delivery(resource.method) %}
+    {% if sylius_sm_can(resource, 'sylius_shipment', 'ship') %}
+        <div {{ attributes }}>
+            {{ form_start(form, {
+                'action': path('app_admin_foxpost_parcel_register', {shipmentId: resource.id}),
+                'attr': {'class': 'ui loadable form', 'novalidate': 'novalidate'},
+            }) }}
+            <input type="hidden" name="_method" value="POST">
+            <div class="input-group flex-nowrap">
+                <button type="submit" class="btn" {{ sylius_test_html_attribute('shipment-ship-button') }}>
+                    {{ ux_icon('tabler:truck') }}
+                    {{ 'codeconjure.foxpost.ui.register_parcel'|trans }}
+                </button>
+            </div>
+            {{ form_row(form._token) }}
+            {{ form_end(form, {'render_rest': false}) }}
+        </div>
+    {% endif %}
+{% else %}
+    {{ include('@SyliusAdmin/shipment/component/ship.html.twig') }}
+{% endif %}

@@ -80,6 +80,41 @@ a plugint telepíti, de nem adja hozzá ezt a négy mezőt, egyszerűen nem
 látja a FoxPost-mezőket a pénztárban — a checkout egyébként hibátlanul
 működik.
 
+## Az admin szállítási panel — host-szerződés a feladás-gombról
+
+**A hostnak a `ship` hookable `props.template`-jét kell a plugin sablonjára
+állítania.** A plugin `templates/admin/shipment/ship.html.twig`-je a FoxPost
+szállítási módokra a csomagfeladás-gombot rajzolja (a plugin saját
+`app_admin_foxpost_parcel_register` route-jára), minden más módra pedig
+változatlanul a Sylius alapsablonját rendereli — így egyetlen sablon szolgálja
+ki a panel mindkét esetét.
+
+A `ship` kulcs viszont a SyliusAdminBundle-é, és a plugin `prepend()`-je egy már
+betöltött bundle saját kulcsát nem tudja átállítani (ugyanaz a határ, mint a
+checkout `shipment` hookable-jénél), ezért ezt a hostnak kell megtennie:
+
+```yaml
+sylius_twig_hooks:
+    hooks:
+        'sylius_admin.order.show.content.sections.shipments.item.actions':
+            ship:
+                props:
+                    template: '@CodeConjureSyliusFoxPostPlugin/admin/shipment/ship.html.twig'
+```
+
+A `props` többi kulcsa (`resource`, `path`, `pathParameters`) a Sylius
+alapkonfigurációjából marad meg — a részleges felülírás kulcs szerint fésül
+össze.
+
+**A plugin eltávolítása ezzel ennek az egy sornak a törlése**: a bolt sablonjai
+nem ismerik sem a plugin route-ját, sem a Twig-szűrőit (#193).
+
+A rendelés-összegző átvételi pont-sora ehhez képest **nem kér host-lépést**: azt
+a plugin a `sylius_shop.shared.order.show.summary.addresses.shipping.pickup_point`
+hookra ülteti, amit a Sylius nem foglal — a hostnak csak annyi a dolga, hogy a
+szállítási blokkjában meghívja (`{% hook 'pickup_point' with { shipment: shipment } %}`),
+szolgáltatónév nélkül.
+
 ## License
 
 MIT

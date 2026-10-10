@@ -22,6 +22,7 @@ codeconjure:
             parcel_locker:
                 title: 'Parcel locker details'
         pickup_point:
+            title: 'Parcel locker'
             select: 'Select a parcel locker'
             change: 'Change parcel locker'
         ui:
@@ -46,3 +47,4 @@ codeconjure:
             cancel: 'Cancel'
             bulk_register: 'Bulk register'
             bulk_label: 'Bulk label'
+            register_parcel: 'Register FoxPost parcel'

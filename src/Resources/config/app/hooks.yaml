@@ -46,3 +46,24 @@ sylius_twig_hooks:
             foxpost_default_size:
                 template: '@CodeConjureSyliusFoxPostPlugin/admin/shipping_method/foxpost_default_size.html.twig'
                 priority: 140
+
+        # ---- #193: a bolt két admin/bolt sablonjából átvett FoxPost-ágak ----
+
+        # ÚJ hook-név (a `{% hook 'pickup_point' %}`-ot a host rendelés-összegző
+        # sablonja hívja, a Sylius nem foglalja), tehát a prepend() itt nyer:
+        # ez a bejegyzés ÉL, host-oldali beavatkozás nélkül.
+        'sylius_shop.shared.order.show.summary.addresses.shipping.pickup_point':
+            foxpost:
+                template: '@CodeConjureSyliusFoxPostPlugin/shop/order/summary_pickup_point.html.twig'
+                priority: 0
+
+        # Ez viszont a SyliusAdminBundle saját `ship` kulcsa — a prepend() nem
+        # tudja átállítani (ugyanaz a határ, mint a fenti `shipment`-nél), ezért
+        # ez a bejegyzés ma HOLT. A `props.template` cseréje a befogadó bolt egy
+        # sora, l. a README „Az admin szállítási panel" szakaszát. Bent hagyva,
+        # mert ártalmatlan, és dokumentálja, hova tartozik a sablon.
+        'sylius_admin.order.show.content.sections.shipments.item.actions':
+            ship:
+                component: 'sylius_admin:shipment:ship_form'
+                props:
+                    template: '@CodeConjureSyliusFoxPostPlugin/admin/shipment/ship.html.twig'

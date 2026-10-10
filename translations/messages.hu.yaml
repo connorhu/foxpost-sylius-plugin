@@ -24,6 +24,11 @@
 # A `shipping_method.default_size(_placeholder)` párnak nem volt bolt-oldali
 # fordítása: a mezőcímke mérve nyers kulcsként jelent meg az admin
 # szállításimód-űrlapon.
+#
+# A #193-ban két további kulcs jött, mindkettő a boltból átvett sablonban
+# FORDÍTÁS NÉLKÜLI, bedrótozott magyar szöveg volt:
+#   - ui.register_parcel    (az admin szállítási panel feladás-gombja)
+#   - pickup_point.title    (a rendelés-összegző automata-sora)
 codeconjure:
     foxpost:
         delivery_kind:
@@ -47,6 +52,7 @@ codeconjure:
             parcel_locker:
                 title: Csomagautomata adatai
         pickup_point:
+            title: Csomagautomata
             select: Csomagautomata kiválasztása
             change: Csomagautomata módosítása
         ui:
@@ -71,3 +77,4 @@ codeconjure:
             cancel: Mégse
             bulk_register: Tömeges feladás
             bulk_label: Tömeges címke
+            register_parcel: Foxpost Csomag regisztráció
