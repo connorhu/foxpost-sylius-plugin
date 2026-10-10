@@ -136,7 +136,11 @@ A csomag egy konzolparancsot ad: `bin/console foxpost:tracking:sync`. A
 lekéri a FoxPost nyomkövetési státuszát, elteszi nyersen, és ahol a leképezés
 ad átmenetet, lépteti az állapotgépet. A parancs **nem kér host-lépést** (a
 bundle autoconfigurálja), a futtatás gyakorisága viszont a befogadó boltra
-tartozik — naponta egyszer bőven elég.
+tartozik: minél gyakrabban fut, annál frissebb a vevő felé látható
+kiszállítási állapot, és egy futás annyi FoxPost API-hívást indít, ahány
+AKTÍV csomag van (a záró naplósor `found` száma) — tehát a költség a
+csomagforgalommal nő, nem a gyakorisággal. A referencia-bolt 15 percenként
+futtatja, `flock`-kal az átfedő futások ellen.
 
 A parancs és a `monolog.logger.foxpost` csatorna záró sora ugyanazt az öt
 számlálót adja (#173):
