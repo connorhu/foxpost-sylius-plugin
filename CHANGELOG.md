@@ -8,6 +8,43 @@ kompatibilisek.
 
 ## [Nem kiadott]
 
+## [0.1.3] – 2026-10-10
+
+Javító kiadás: a nyomkövetés-szinkron záró naplója a futás EREDMÉNYÉT írja, nem
+a lekérdezés találatszámát. A host-szerződés (interfészek, traitek,
+szolgáltatás-azonosítók, route-ok) változatlan; a nyilvános API csak BŐVÜL
+(`FoxPostTrackingSyncService::syncActive()` mostantól visszaad egy összegzőt —
+a hívót ez nem érinti, az osztály `final`), ezért a befogadó bolt `^0.1` pinje
+is marad.
+
+### Javítva
+
+- **A nyomkövetés-szinkron záró naplója nem a feldolgozott csomagokat
+  számolta** (#173): a `['count' => count($parcels)]` a repository
+  találatszámát írta, miközben a ciklus három helyen `continue`-zik (nincs
+  vonalkód, API-hiba, használhatatlan válasz). Egy teljesen sikertelen futás —
+  minden API-hívás elbukik — pontosan ugyanazt a `count`-ot jelentette, mint
+  egy teljesen sikeres, tehát a napi cron egyetlen összegző soráról nem
+  lehetett megmondani, működött-e a szinkron. A sor mostantól öt számlálót
+  ad: `found`, `synced`, `transitions`, `skipped`, `failed`.
+
+### Hozzáadva
+
+- **`FoxPostTrackingSyncSummary`** — a futás eredménye értékobjektumként; a
+  `syncActive()` ezt adja vissza, és a napló is ebből kapja a kontextusát.
+- **A `foxpost:tracking:sync` parancs kiírja a számlálókat.** Korábban egyetlen
+  sort írt (`FoxPost tracking sync complete.`), pontosan ugyanazt egy teljesen
+  sikertelen futás után is. A kilépési kód szándékosan nem változott: az a
+  cron szerződése.
+- **A parancs tesztfedezete** (`tests/Unit/Command/FoxPostTrackingSyncCommandTest`,
+  a valódi szolgáltatással és PSR-18 mock HTTP klienssel), és a
+  nyomkövetés-szinkron öt új számláló-tesztje — köztük a #173 elfogadási
+  feltétele (a teljesen sikertelen futás `synced: 0`-t jelent) és a
+  `found === synced + skipped + failed` szerződés. 291 → 298 teszt.
+- **A README leírja a nyomkövetés-szinkront** (a parancs, a számlálók jelentése
+  és hogy a cron gyakorisága a hostra tartozik) — eddig egyik dokumentum sem
+  említette.
+
 ## [0.1.2] – 2026-10-10
 
 Javító kiadás: a hat admin művelet-route a befogadó bolt admin-útvonalát
@@ -137,8 +174,11 @@ csomagba került, a protokoll-réteg a
   route nincs lefedve (#198). *(Megoldva a `0.1.1`-ben.)*
 - **A hat művelet-route nem a bolt admin-útvonalát követi** (#209).
   *(Megoldva a `0.1.2`-ben.)*
+- **A nyomkövetés-szinkron záró naplója a lekérdezés találatszámát írja**, nem
+  a futás eredményét (#173). *(Megoldva a `0.1.3`-ban.)*
 
-[Nem kiadott]: https://github.com/connorhu/foxpost-sylius-plugin/compare/0.1.2...main
+[Nem kiadott]: https://github.com/connorhu/foxpost-sylius-plugin/compare/0.1.3...main
+[0.1.3]: https://github.com/connorhu/foxpost-sylius-plugin/compare/0.1.2...0.1.3
 [0.1.2]: https://github.com/connorhu/foxpost-sylius-plugin/compare/0.1.1...0.1.2
 [0.1.1]: https://github.com/connorhu/foxpost-sylius-plugin/compare/0.1.0...0.1.1
 [0.1.0]: https://github.com/connorhu/foxpost-sylius-plugin/releases/tag/0.1.0

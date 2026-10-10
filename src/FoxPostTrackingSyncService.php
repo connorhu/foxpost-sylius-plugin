@@ -25,18 +25,34 @@ final class FoxPostTrackingSyncService
     ) {
     }
 
-    public function syncActive(): void
+    /**
+     * A visszatérési érték a #173 miatt van: a napi cron egyetlen összegző
+     * kimenete a záró naplósor volt, és az a repository találatszámát írta —
+     * egy teljesen sikertelen futás ugyanazt a számot jelentette, mint egy
+     * teljesen sikeres. A hívó (ma a `FoxPostTrackingSyncCommand`) így ki
+     * tudja írni a konzolra is, amit a napló megkap.
+     */
+    public function syncActive(): FoxPostTrackingSyncSummary
     {
         $parcels = $this->parcelRepository->findActiveForTracking();
 
+        $synced = 0;
+        $transitions = 0;
+        $skipped = 0;
+        $failed = 0;
+
         foreach ($parcels as $parcel) {
             if ($parcel->getBarcode() === null) {
+                ++$skipped;
+
                 continue;
             }
 
             try {
                 $data = $this->apiClient->getTracking($parcel->getBarcode());
             } catch (\Throwable $e) {
+                ++$failed;
+
                 $this->logger->warning('FoxPost tracking sync failed', [
                     'barcode' => $parcel->getBarcode(),
                     'error' => $e->getMessage(),
@@ -47,8 +63,12 @@ final class FoxPostTrackingSyncService
 
             $rawStatus = $data['status'] ?? null;
             if (!is_scalar($rawStatus)) {
+                ++$skipped;
+
                 continue;
             }
+
+            ++$synced;
 
             $rawStatus = (string) $rawStatus;
             $parcel->setFoxpostStatus($rawStatus);
@@ -64,11 +84,22 @@ final class FoxPostTrackingSyncService
 
             if ($transition !== null && $this->workflow->can($parcel, $transition)) {
                 $this->workflow->apply($parcel, $transition);
+                ++$transitions;
             }
         }
 
         $this->entityManager->flush();
 
-        $this->logger->info('FoxPost tracking sync complete', ['count' => count($parcels)]);
+        $summary = new FoxPostTrackingSyncSummary(
+            found: \count($parcels),
+            synced: $synced,
+            transitions: $transitions,
+            skipped: $skipped,
+            failed: $failed,
+        );
+
+        $this->logger->info('FoxPost tracking sync complete', $summary->toLogContext());
+
+        return $summary;
     }
 }
