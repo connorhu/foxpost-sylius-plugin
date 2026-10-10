@@ -10,6 +10,7 @@ use CodeConjure\SyliusFoxPostPlugin\CachedParcelLockerProvider;
 use CodeConjure\SyliusFoxPostPlugin\Form\Extension\CheckoutShipmentTypeExtension;
 use CodeConjure\SyliusFoxPostPlugin\Form\Extension\SelectShippingTypeExtension;
 use CodeConjure\SyliusFoxPostPlugin\Form\Type\FoxPostPickupPointSelectType;
+use CodeConjure\SyliusFoxPostPlugin\Model\FoxPostShipmentInterface;
 use CodeConjure\SyliusFoxPostPlugin\Tests\Support\HostShipment;
 use Http\Mock\Client as MockHttpClient;
 use Nyholm\Psr7\Factory\Psr17Factory;
@@ -33,6 +34,7 @@ use Symfony\Component\Form\Extension\Core\Type\TelType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Validator\ValidatorExtension;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\FormFactoryBuilderInterface;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Form\Forms;
@@ -157,6 +159,41 @@ final class CheckoutShipmentFieldsTest extends TestCase
             $type = $spec['type'];
 
             yield $field => [$field, $type, $spec['group']];
+        }
+    }
+
+    /**
+     * Amit a plugin a formhoz ad, azt a publikált host-szerződésen keresztül
+     * ÍRNI is kell tudni.
+     *
+     * A mezőlistát nem konstansból vesszük, hanem a VALÓDI formból: a plugin
+     * kiterjesztésével és nélküle felépített `ShipmentType` gyerekmezőinek a
+     * különbsége. Így az állítás akkor is elsül, ha valaki egy harmadik mezőt
+     * ad a formhoz, és elfelejti a `FoxPostShipmentInterface`-t bővíteni — a
+     * hibamód ugyanaz a `NoSuchPropertyException` a pénztár szállítási
+     * lépésén, csak egy másik mezőre.
+     *
+     * Ez a #199 host-szerződésének egésze: a plugin a FORMOT adja, a
+     * TÁROLÁST a host (#116 3.10), és a kettő között ez az interfész áll.
+     */
+    public function testEveryFieldThePluginAddsIsWritableThroughThePublishedContract(): void
+    {
+        $contract = new \ReflectionClass(FoxPostShipmentInterface::class);
+        $fields = $this->fieldsAddedByThePlugin();
+
+        self::assertNotSame([], $fields, 'A plugin kiterjesztése egyetlen mezőt sem ad a formhoz.');
+
+        foreach ($fields as $field) {
+            foreach (['get' . ucfirst($field), 'set' . ucfirst($field)] as $method) {
+                self::assertTrue($contract->hasMethod($method), \sprintf(
+                    'A `%s` mezőt a plugin adja a shipment formhoz, de a `%s()` nincs a ' .
+                    '`FoxPostShipmentInterface`-ben. A form a property path-on keresztül ír: egy ' .
+                    'olyan host, ami csak az interfészt valósítja meg, a pénztár szállítási ' .
+                    'lépésén NoSuchPropertyException-nel állna le.',
+                    $field,
+                    $method,
+                ));
+            }
         }
     }
 
@@ -303,11 +340,7 @@ final class CheckoutShipmentFieldsTest extends TestCase
 
     private function formFactory(FormTypeExtensionInterface ...$hostExtensions): FormFactoryInterface
     {
-        $builder = Forms::createFormFactoryBuilder()
-            ->addExtension(new ValidatorExtension(Validation::createValidator()))
-            ->addType(new ShipmentType(Shipment::class))
-            ->addType($this->shippingMethodChoiceType())
-            ->addType(new FoxPostPickupPointSelectType($this->lockerProvider()))
+        $builder = $this->formFactoryBuilderWithoutThePlugin()
             ->addTypeExtension(new CheckoutShipmentTypeExtension());
 
         foreach ($hostExtensions as $extension) {
@@ -315,6 +348,36 @@ final class CheckoutShipmentFieldsTest extends TestCase
         }
 
         return $builder->getFormFactory();
+    }
+
+    private function formFactoryBuilderWithoutThePlugin(): FormFactoryBuilderInterface
+    {
+        return Forms::createFormFactoryBuilder()
+            ->addExtension(new ValidatorExtension(Validation::createValidator()))
+            ->addType(new ShipmentType(Shipment::class))
+            ->addType($this->shippingMethodChoiceType())
+            ->addType(new FoxPostPickupPointSelectType($this->lockerProvider()));
+    }
+
+    /**
+     * A plugin kiterjesztése által hozzáadott mezők — a kiterjesztéssel és
+     * nélküle felépített form gyerekmezőinek a különbsége. A `method` mezőt
+     * így nem kell kézzel kizárni: azt a Sylius `ShipmentType` adja mindkét
+     * esetben.
+     *
+     * @return list<string>
+     */
+    private function fieldsAddedByThePlugin(): array
+    {
+        $withPlugin = array_keys($this->shipmentForm()->all());
+        $without = array_keys(
+            $this->formFactoryBuilderWithoutThePlugin()
+                ->getFormFactory()
+                ->create(ShipmentType::class, new HostShipment())
+                ->all(),
+        );
+
+        return array_values(array_diff($withPlugin, $without));
     }
 
     /**
