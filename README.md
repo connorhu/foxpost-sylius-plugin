@@ -129,6 +129,34 @@ hookra ülteti, amit a Sylius nem foglal — a hostnak csak annyi a dolga, hogy 
 szállítási blokkjában meghívja (`{% hook 'pickup_point' with { shipment: shipment } %}`),
 szolgáltatónév nélkül.
 
+## Nyomkövetés-szinkron (cron)
+
+A csomag egy konzolparancsot ad: `bin/console foxpost:tracking:sync`. A
+`FoxpostParcelRepository::findActiveForTracking()` által adott csomagokra
+lekéri a FoxPost nyomkövetési státuszát, elteszi nyersen, és ahol a leképezés
+ad átmenetet, lépteti az állapotgépet. A parancs **nem kér host-lépést** (a
+bundle autoconfigurálja), a futtatás gyakorisága viszont a befogadó boltra
+tartozik — naponta egyszer bőven elég.
+
+A parancs és a `monolog.logger.foxpost` csatorna záró sora ugyanazt az öt
+számlálót adja (#173):
+
+```
+FoxPost tracking sync complete.
+  found:      42   # amit a repository adott
+  synced:     40   # sikeres API-hívás + eltett nyers státusz
+  transitions: 12  # ahány csomag tényleg állapotot váltott
+  skipped:     1   # vonalkód nélkül vagy használhatatlan válasz
+  failed:      1   # API-hiba (soronként egy warning is van a naplóban)
+```
+
+Minden csomag pontosan egy kategóriába esik a `synced`/`skipped`/`failed`
+közül, tehát a három összege a `found`. A `transitions` ezekre ortogonális (a
+`synced` részhalmaza), és ez a szinkron valódi kimenete: a nyers státusz
+eltevése önmagában nem mozdítja a rendelést. A `0.1.3` előtt a záró sor egyetlen
+számot írt, a repository találatszámát — egy teljesen sikertelen futás
+ugyanazt jelentette, mint egy teljesen sikeres.
+
 ## Verziózás
 
 A csomag [SemVer](https://semver.org/lang/hu/) szerint verziózódik, és tagolt

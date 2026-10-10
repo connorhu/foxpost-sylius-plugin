@@ -9,6 +9,7 @@ use CodeConjure\FoxPost\Environment;
 use CodeConjure\SyliusFoxPostPlugin\Entity\FoxpostParcel;
 use CodeConjure\SyliusFoxPostPlugin\Entity\FoxpostParcelStatus;
 use CodeConjure\SyliusFoxPostPlugin\FoxPostTrackingSyncService;
+use CodeConjure\SyliusFoxPostPlugin\FoxPostTrackingSyncSummary;
 use CodeConjure\SyliusFoxPostPlugin\Repository\FoxpostParcelRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Http\Mock\Client as MockClient;
@@ -342,28 +343,161 @@ final class FoxPostTrackingSyncServiceTest extends TestCase
         $logger->expects(self::never())->method('warning');
         $logger->expects(self::once())
             ->method('info')
-            ->with('FoxPost tracking sync complete', ['count' => 0]);
+            ->with('FoxPost tracking sync complete', [
+                'found' => 0,
+                'synced' => 0,
+                'transitions' => 0,
+                'skipped' => 0,
+                'failed' => 0,
+            ]);
 
         $this->sync([], [], entityManager: $entityManager, logger: $logger);
     }
 
     /**
-     * A záró napló a REPOSITORY által adott csomagok számát írja — nem a
-     * sikeresen feldolgozottakét. A vonalkód nélküli és a hibára futott csomag
-     * is beleszámít.
+     * A #173 javítása. KORÁBBAN ez a teszt a mai (hibás) viselkedést
+     * rögzítette: a záró napló a repository találatszámát írta
+     * (`['count' => 3]`), tehát a vonalkód nélküli és a hibára futott csomag
+     * is „feldolgozottnak" számított. A napi cron egyetlen összegző sorából
+     * így nem lehetett megmondani, működött-e a szinkron.
+     *
+     * Ugyanaz a három csomag, mint a #170-es referencia-tesztben: egy
+     * vonalkód nélküli (kihagyva, API-hívás sem történik), egy 404-re futó
+     * (hiba) és egy sikeres (`DELIVERED`, ami átmenetet is végez).
      */
-    public function testTheClosingLogCountsEveryParcelTheRepositoryReturned(): void
+    public function testTheClosingLogDistinguishesWhatActuallyHappened(): void
     {
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects(self::once())
             ->method('info')
-            ->with('FoxPost tracking sync complete', ['count' => 3]);
+            ->with('FoxPost tracking sync complete', [
+                'found' => 3,
+                'synced' => 1,
+                'transitions' => 1,
+                'skipped' => 1,
+                'failed' => 1,
+            ]);
 
         $this->sync(
             [$this->parcel(null), $this->parcel('CSOMAG1'), $this->parcel('CSOMAG2')],
             [new Response(404, [], 'nincs ilyen'), $this->trackingResponse('DELIVERED')],
             logger: $logger,
         );
+    }
+
+    /**
+     * A #173 kifejezett elfogadási feltétele: a TELJESEN sikertelen futás
+     * `synced: 0`-t jelent. Korábban ez a futás `count: 3`-at írt, vagyis
+     * pontosan ugyanazt, mint egy teljesen sikeres.
+     */
+    public function testACompletelyFailingRunReportsNothingSynced(): void
+    {
+        $summary = $this->sync(
+            [$this->parcel('CSOMAG1'), $this->parcel('CSOMAG2'), $this->parcel('CSOMAG3')],
+            [new Response(500, [], 'hiba'), new Response(500, [], 'hiba'), new Response(500, [], 'hiba')],
+        );
+
+        self::assertSame(
+            ['found' => 3, 'synced' => 0, 'transitions' => 0, 'skipped' => 0, 'failed' => 3],
+            $summary->toLogContext(),
+        );
+    }
+
+    /**
+     * A használhatatlan válasz (nincs `status`, vagy nem skalár) nem hiba és
+     * nem is szinkron: a csomag érintetlen marad, még az `updatedAt` sem
+     * mozdul — l. `testAnUnusableStatusLeavesTheParcelUntouched`. A
+     * számlálóban ezért a `skipped` a helye, nem a `synced`-é.
+     */
+    public function testAnUnusableResponseCountsAsSkippedNotSynced(): void
+    {
+        $summary = $this->sync(
+            [$this->parcel('CSOMAG1')],
+            [new Response(200, [], '{"nincs":"statusz"}')],
+        );
+
+        self::assertSame(
+            ['found' => 1, 'synced' => 0, 'transitions' => 0, 'skipped' => 1, 'failed' => 0],
+            $summary->toLogContext(),
+        );
+    }
+
+    /**
+     * A `transitions` a szinkron VALÓDI kimenete: a nyers státusz eltevése
+     * önmagában nem mozdítja a rendelést. Egy fel nem ismert státusz tehát
+     * `synced`, de nem `transitions` — ez a kettő szándékosan külön szám.
+     */
+    public function testARecordedStatusWithoutATransitionCountsAsSyncedOnly(): void
+    {
+        $summary = $this->sync(
+            [$this->parcel('CSOMAG1')],
+            [$this->trackingResponse('VALAMI_UJ_STATUSZ')],
+        );
+
+        self::assertSame(
+            ['found' => 1, 'synced' => 1, 'transitions' => 0, 'skipped' => 0, 'failed' => 0],
+            $summary->toLogContext(),
+        );
+    }
+
+    /**
+     * A számlálók szerződése: minden csomag pontosan egy kategóriába esik a
+     * `synced`/`skipped`/`failed` közül, tehát az összegük a `found`. Enélkül
+     * a záró sorból nem lehet megmondani, maradt-e csomag, amiről semmit nem
+     * tudunk.
+     */
+    public function testEveryParcelIsAccountedForExactlyOnce(): void
+    {
+        $summary = $this->sync(
+            [
+                $this->parcel(null),
+                $this->parcel('CSOMAG1'),
+                $this->parcel('CSOMAG2'),
+                $this->parcel('CSOMAG3'),
+                $this->parcel('CSOMAG4'),
+            ],
+            [
+                new Response(500, [], 'hiba'),
+                new Response(200, [], '{"status":{"nem":"skalar"}}'),
+                $this->trackingResponse('DELIVERED'),
+                $this->trackingResponse('VALAMI_UJ_STATUSZ'),
+            ],
+        );
+
+        self::assertSame(5, $summary->found);
+        self::assertSame(
+            $summary->found,
+            $summary->synced + $summary->skipped + $summary->failed,
+            'Van olyan csomag, ami egyik kategóriába sem esik (vagy kettőbe esik).',
+        );
+        self::assertLessThanOrEqual(
+            $summary->synced,
+            $summary->transitions,
+            'Átmenet csak szinkronizált csomagon történhet.',
+        );
+    }
+
+    /**
+     * A naplóba és a visszatérési értékbe UGYANAZ megy — a konzol kimenete
+     * (`FoxPostTrackingSyncCommand`) így nem tud elcsúszni a naplótól.
+     */
+    public function testTheCallerGetsTheSameCountersTheLogGets(): void
+    {
+        $logged = null;
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects(self::once())
+            ->method('info')
+            ->willReturnCallback(static function (string $message, array $context) use (&$logged): void {
+                $logged = $context;
+            });
+
+        $summary = $this->sync(
+            [$this->parcel('CSOMAG1'), $this->parcel(null)],
+            [$this->trackingResponse('DELIVERED')],
+            logger: $logger,
+        );
+
+        self::assertSame($summary->toLogContext(), $logged);
     }
 
     // -------------------------------------------------------------------------
@@ -393,13 +527,13 @@ final class FoxPostTrackingSyncServiceTest extends TestCase
         ?EntityManagerInterface $entityManager = null,
         ?LoggerInterface $logger = null,
         ?MockClient $httpClient = null,
-    ): void {
+    ): FoxPostTrackingSyncSummary {
         $httpClient ??= new MockClient();
         foreach ($responses as $response) {
             $httpClient->addResponse($response);
         }
 
-        $this->syncWithClient($parcels, $httpClient, $workflow, $entityManager, $logger);
+        return $this->syncWithClient($parcels, $httpClient, $workflow, $entityManager, $logger);
     }
 
     /**
@@ -411,7 +545,7 @@ final class FoxPostTrackingSyncServiceTest extends TestCase
         ?WorkflowInterface $workflow = null,
         ?EntityManagerInterface $entityManager = null,
         ?LoggerInterface $logger = null,
-    ): void {
+    ): FoxPostTrackingSyncSummary {
         $repository = self::createStub(FoxpostParcelRepository::class);
         $repository->method('findActiveForTracking')->willReturn($parcels);
 
@@ -440,6 +574,6 @@ final class FoxPostTrackingSyncServiceTest extends TestCase
             $logger ?? self::createStub(LoggerInterface::class),
         );
 
-        $service->syncActive();
+        return $service->syncActive();
     }
 }

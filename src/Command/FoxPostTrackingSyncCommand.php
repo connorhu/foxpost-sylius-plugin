@@ -20,8 +20,16 @@ final class FoxPostTrackingSyncCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $this->syncService->syncActive();
+        $summary = $this->syncService->syncActive();
+
         $output->writeln('FoxPost tracking sync complete.');
+
+        // Ugyanaz a számlálókészlet, amit a záró naplósor megkap (#173): a
+        // korábbi kimenet („complete.") akkor is ugyanígy szólt, ha minden
+        // egyes API-hívás elbukott.
+        foreach ($summary->toLogContext() as $name => $count) {
+            $output->writeln(\sprintf('  %-11s %d', $name . ':', $count));
+        }
 
         return Command::SUCCESS;
     }
