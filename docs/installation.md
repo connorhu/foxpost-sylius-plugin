@@ -133,12 +133,17 @@ ott, ezért a Flex a fenti blokkot **minden update-nél kitörli**. A befogadó
 boltnak ezt vissza kell tennie, amíg a plugin a kulcsszót meg nem kapja —
 l. `codeconjure/egyhazzene-hu-bolt#197`.
 
-> **Ismert hiba:** a két controller `data-controller` azonosítója a
-> kiszervezés (#187) óta nem egyezik a sablonokéval — a `stimulus-bridge` a
-> csomagnévből képzi (`codeconjure--foxpost-sylius-plugin--foxpost-shipping`),
-> a sablonok viszont a rövid nevet (`foxpost-shipping`) írják. A két
-> controller emiatt **nem kapcsolódik be**. A javítás a plugin
-> `assets/package.json`-jában egy `name` kulcs — l. a külön issue-t.
+**Az azonosítókkal nincs dolgod.** A két controller a rövid
+`foxpost-shipping`, illetve `foxpost-pickup-point` azonosítón regisztrálódik —
+pontosan azon, amit a plugin sablonjainak `data-controller` attribútumai
+írnak. Ez nem a bridge alapértelmezése: az a csomagnévből képezné
+(`codeconjure--foxpost-sylius-plugin--foxpost-shipping`), ezért a plugin
+`assets/package.json`-ja mindkét bejegyzésben megadja a `name` kulcsot
+(#203 — a kiszervezés óta ez a kulcs hiányzott, és a két controller némán nem
+kapcsolódott be). A saját `controllers.json`-odban is adhatnál `name`-et, de
+az nem tartós: a Flex szinkronizálója csak az `enabled`, a `fetch` és az
+`autoimport` kulcsot írja vissza, egy ottani `name` minden `composer
+update`-nél elveszne.
 
 ## 4. Környezeti változók
 
@@ -301,6 +306,13 @@ bin/console doctrine:migrations:list | grep -c 'SyliusFoxPostPlugin'   # → 3
 bin/console debug:container --parameter=codeconjure.foxpost.city_lookup_route
 ```
 
+A Stimulus-oldal böngésző nélkül a lefordított bundle regiszterén mérhető —
+a rövid azonosítóknak ott kell lenniük:
+
+```bash
+grep -c "'foxpost-shipping'" public/build/app/shop/app-shop-entry.js   # → 1
+```
+
 Felületen: az admin menüben megjelenik a FoxPost csomaglista, a pénztár
 szállítási lépésén pedig a FoxPost mód kiválasztásakor a telefonszám- és
 csomagautomata-panel.
@@ -332,3 +344,4 @@ a Flex saját `PackageJsonSynchronizer`-e kezeli, amint a plugin megkapja a
 | a két hook-felülírás | **hostnál maradt** | a kulcsok a Syliuséi, és egy plugin `prepend()`-je meglévő kulcsot nem tud felülírni |
 | a városkereső route neve | **hostnál maradt** | host route-név, a plugin nem ismerheti |
 | a checkout két mezője | **hostnál maradt** | a bolt saját cím- és telefonszám-infrastruktúrájára épül (l. README) |
+| a Stimulus-azonosítók | **pluginba** (#203) | a `name` kulcs a csomagban tartós, a host `controllers.json`-jában nem: a Flex minden update-nél újraírja |
