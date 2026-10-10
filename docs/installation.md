@@ -23,7 +23,7 @@ az a bolt a plugin első (és a mérések idején egyetlen) befogadója.
 |---|---|---|---|
 | 1 | `config/bundles.php` | igen | **hangos** — a konténer nem fordul |
 | 2 | `config/routes/codeconjure_foxpost.yaml` | igen | **hangos** — minden admin lap `RouteNotFoundException` |
-| 3 | `assets/controllers.json` | igen (ha van pénztár-UI) | néma — a két Stimulus controller nem kerül a bundle-be |
+| 3 | `assets/controllers.json` | **automatikus** (a Flex írja) | néma — a két Stimulus controller nem kerül a bundle-be |
 | 4 | `.env` | igen | **hangos** — `EnvNotFoundException` |
 | 5 | `config/packages/_sylius.yaml` — pénztár hook | igen (ha van pénztár-UI) | néma — a FoxPost-mezők nem jelennek meg |
 | 6 | `config/packages/_sylius.yaml` — admin feladás-panel | igen | néma — a csomagot nem lehet feladni a rendelés lapjáról |
@@ -31,9 +31,10 @@ az a bolt a plugin első (és a mérések idején egyetlen) befogadója.
 | 8 | `config/services.yaml` — városkereső route | nem | néma — a postai kód → város kiegészítés nem működik |
 | 9 | `config/packages/sylius_labs_doctrine_migrations_extra.yaml` | csak frissítő boltnak | a migrációk sorrendje fordított |
 
-A 2., 3., 5., 6. és 7. lépés a `codeconjure/egyhazzene-hu-bolt` oldalán
-**teszttel őrzött** (`tests/Functional/FoxPostPluginWiringTest.php`) — érdemes
-ugyanígy megőrizni, mert mind az öt hibamód néma vagy félrevezető.
+A 2., 5., 6. és 7. lépés a `codeconjure/egyhazzene-hu-bolt` oldalán
+**teszttel őrzött** (`tests/Functional/FoxPostPluginWiringTest.php`), a 3. a
+`tests/Unit/Assets/ControllersJsonContractTest.php`-ban — érdemes ugyanígy
+megőrizni, mert mind az öt hibamód néma vagy félrevezető.
 
 ---
 
@@ -107,8 +108,11 @@ Amit ez az egy import ad:
 
 ## 3. Stimulus controllerek
 
+**Ezzel a lépéssel nincs dolgod** — a Symfony Flex írja be, a
+`composer require` (és minden későbbi `composer update`) után:
+
 ```json
-// assets/controllers.json
+// assets/controllers.json — a Flex állítja elő
 {
     "controllers": {
         "@codeconjure/foxpost-sylius-plugin": {
@@ -119,19 +123,30 @@ Amit ez az egy import ad:
 }
 ```
 
-és a `package.json`-ban:
+és ugyanő veszi fel a `package.json`-ba:
 
 ```json
 "@codeconjure/foxpost-sylius-plugin": "file:vendor/codeconjure/foxpost-sylius-plugin/assets"
 ```
 
-**Miért nem automatikus:** a Symfony Flex `PackageJsonSynchronizer`-e minden
+Ami ezt lehetővé teszi: a plugin `composer.json`-jának `keywords` listájában
+ott van a **`symfony-ux`** kulcsszó. A Flex `PackageJsonSynchronizer`-e minden
 `composer update` után a nulláról írja újra a `controllers` kulcsot, és csak
-azt a csomagot ismeri fel, aminek a **composer.lock-bejegyzésében** ott van a
-`symfony-ux` kulcsszó. A plugin `composer.json`-jában ez a kulcsszó ma nincs
-ott, ezért a Flex a fenti blokkot **minden update-nél kitörli**. A befogadó
-boltnak ezt vissza kell tennie, amíg a plugin a kulcsszót meg nem kapja —
-l. `codeconjure/egyhazzene-hu-bolt#197`.
+azokat a csomagokat teszi vissza, amelyek a **composer.lock-bejegyzésükben**
+ezt a kulcsszót hordozzák (`resolvePackageJson()`). A kulcsszó a #197 előtt
+hiányzott, és a Flex ezért a blokkot minden update-nél kitörölte — ötszer
+mérve, mindannyiszor némán (`codeconjure/egyhazzene-hu-bolt#197`).
+
+> A kulcsszót a Flex a **lockból** olvassa, nem a `vendor/.../composer.json`-ból:
+> egy a #197 előtti lockfile-lal futó bolt az első `composer update
+> codeconjure/foxpost-sylius-plugin`-ig még a régi viselkedést kapja. Az az
+> update egyben az első, amelyik már nem töröl — a blokkot viszont a Flex
+> formázása és sorrendje szerint újraírja, tehát egy egyszeri, ártalmatlan
+> formázási diff még keletkezik.
+
+Amit viszont a Flex **nem** tesz meg: az `npm install` és a build. A
+bejegyzés megléte nem bizonyíték — a bundle-t kell megmérni (l. lentebb,
+*Ellenőrzés*).
 
 **Az azonosítókkal nincs dolgod.** A két controller a rövid
 `foxpost-shipping`, illetve `foxpost-pickup-point` azonosítón regisztrálódik —
@@ -290,7 +305,7 @@ extension konfigurációja: `framework`, `sylius_resource`, `sylius_grid`,
 
 ## Ellenőrzés
 
-A telepítés után ez a négy parancs méri meg, hogy minden a helyén van:
+A telepítés után ez az öt parancs méri meg, hogy minden a helyén van:
 
 ```bash
 # 1. A hét admin route létezik
@@ -304,6 +319,15 @@ bin/console doctrine:migrations:list | grep -c 'SyliusFoxPostPlugin'   # → 3
 
 # 4. A városkereső paraméter (ha beállítottad)
 bin/console debug:container --parameter=codeconjure.foxpost.city_lookup_route
+
+# 5. A Flex felismeri-e a csomagot: a kulcsszót a LOCKBÓL olvassa, és ha nincs
+#    ott, a következő update kitörli a controllers.json bejegyzést (#197)
+php -r '$l = json_decode(file_get_contents("composer.lock"), true);
+  foreach ($l["packages"] as $p) {
+      if ($p["name"] === "codeconjure/foxpost-sylius-plugin") {
+          echo \in_array("symfony-ux", $p["keywords"] ?? [], true) ? "ok\n" : "HIÁNYZIK\n";
+      }
+  }'
 ```
 
 A Stimulus-oldal böngésző nélkül a lefordított bundle regiszterén mérhető —
@@ -331,8 +355,8 @@ szintén hangos.
 Ha mégis készül, a `symfony/recipes-contrib` a helye, és a tartalma a
 `bundles.php`-bejegyzés, a `config/routes/codeconjure_foxpost.yaml` és az
 `.env` blokk. A 3. lépés (`assets/controllers.json`) **nem** recipe-munka: azt
-a Flex saját `PackageJsonSynchronizer`-e kezeli, amint a plugin megkapja a
-`symfony-ux` kulcsszót.
+a Flex saját `PackageJsonSynchronizer`-e kezeli, a plugin `symfony-ux`
+kulcsszava alapján (#197).
 
 ## Döntés-napló
 
@@ -345,3 +369,4 @@ a Flex saját `PackageJsonSynchronizer`-e kezeli, amint a plugin megkapja a
 | a városkereső route neve | **hostnál maradt** | host route-név, a plugin nem ismerheti |
 | a checkout két mezője | **hostnál maradt** | a bolt saját cím- és telefonszám-infrastruktúrájára épül (l. README) |
 | a Stimulus-azonosítók | **pluginba** (#203) | a `name` kulcs a csomagban tartós, a host `controllers.json`-jában nem: a Flex minden update-nél újraírja |
+| a `controllers.json` bejegyzés | **a Flexre** (#197) | a `symfony-ux` kulcsszóval a szinkronizáló maga tartja fenn; kézzel visszatett blokkot minden update kitörölt |
