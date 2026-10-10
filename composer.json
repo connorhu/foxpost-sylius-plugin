@@ -2,6 +2,7 @@
     "name": "codeconjure/foxpost-sylius-plugin",
     "description": "FoxPost szállítási integráció Syliushoz: csomagfeladás, címke, nyomkövetés.",
     "type": "sylius-plugin",
+    "keywords": ["symfony-ux", "sylius", "sylius-plugin", "foxpost", "shipping"],
     "license": "MIT",
     "require": {
         "php": "^8.4",
