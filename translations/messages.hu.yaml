@@ -86,5 +86,6 @@ codeconjure:
             cancel: Mégse
             cancel_confirm: Biztosan törli a FoxPost csomagot?
             bulk_register: Tömeges feladás
+            bulk_register_confirm: Biztosan feladja a kijelölt csomagokat? Minden csomag egy FoxPost API-hívás.
             bulk_label: Tömeges címke
             register_parcel: Foxpost Csomag regisztráció

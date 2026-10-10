@@ -50,5 +50,6 @@ codeconjure:
             cancel: 'Cancel'
             cancel_confirm: 'Are you sure you want to cancel this FoxPost parcel?'
             bulk_register: 'Bulk register'
+            bulk_register_confirm: 'Register the selected parcels at FoxPost? Each parcel is a separate API call.'
             bulk_label: 'Bulk label'
             register_parcel: 'Register FoxPost parcel'

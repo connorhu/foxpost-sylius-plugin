@@ -22,6 +22,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Http\Mock\Client as MockHttpClient;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Nyholm\Psr7\Response;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\ShipmentInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -49,6 +50,15 @@ final class FoxPostParcelControllerTest extends TestCase
     private const string VALID_API_RESPONSE = '{"valid":true,"parcels":[{"barcode":"' . ParcelFixture::BARCODE . '"}]}';
 
     private const string INVALID_API_RESPONSE = '{"valid":false,"error":"PARCEL_REJECTED"}';
+
+    /**
+     * Egy MÁSIK csomagsor, azért, hogy a két azonosítótér ne legyen
+     * összetéveszthető: a csomag azonosítója szándékosan az, ami egy MÁS
+     * csomag szállítmányáé lehetne.
+     */
+    private const int DECOY_PARCEL_ID = 77;
+
+    private const int DECOY_SHIPMENT_ID = 7777;
 
     public function testRegisterReportsAMissingShipmentAndTouchesNoApi(): void
     {
@@ -329,42 +339,88 @@ final class FoxPostParcelControllerTest extends TestCase
             $request,
             $this->registrationService($http),
             new EligibilityChecker(),
-            $this->entityManager(null),
+            $this->parcelRepository([]),
         );
 
         self::assertSame(
-            ['error' => ['Nincsenek kiválasztott szállítmányok.']],
+            ['error' => ['Nincsenek kiválasztott csomagok.']],
             AdminControllerHarness::flashes($session),
         );
         self::assertCount(0, $http->getRequests());
     }
 
     /**
-     * A tömeges feladás összegző flash-e a SIKERES és a HIBÁS darabszámot is
-     * kiírja, és egy ismeretlen azonosító nem állítja le a kört.
+     * A #208 szerződése: az `ids` CSOMAG-azonosítókat tartalmaz, és a feladás
+     * a csomag MÖGÖTTI szállítmányra megy.
      *
-     * A `bulk_register` route SZÁLLÍTMÁNY-azonosítókat vár — ezért nincs ma
-     * grid-akció hozzá (l. a grid.yaml megjegyzését): a Sylius tömeges
-     * kijelölése a SOROK, azaz a csomagok azonosítóit küldené.
+     * A mérés úgy állítja fel a két azonosítóteret, hogy a kettő ne legyen
+     * összetéveszthető: a kijelölt csomag a `11`-es, a mögötte álló
+     * szállítmány a `4242`-es, és a `11`-es azonosítón MÁS szállítmány
+     * (`7777`) áll. Ha a controller az azonosítót szállítmány-azonosítóként
+     * értelmezné — ez volt a 0.1.x viselkedése, és emiatt nem is volt
+     * grid-akciója —, a FoxPostnál egy másik rendelés csomagja jönne létre.
      */
-    public function testBulkRegisterCountsBothSuccessesAndFailures(): void
+    public function testBulkRegisterRegistersTheShipmentBehindTheSelectedParcel(): void
     {
         $http = new MockHttpClient();
         $http->addResponse(new Response(200, ['Content-Type' => 'application/json'], self::VALID_API_RESPONSE));
 
-        $request = Request::create('/admin/foxpost/parcels/bulk-register', 'POST', [
-            'ids' => [(string) ParcelFixture::SHIPMENT_ID, '9999', ['tömb']],
-        ]);
-        $request->headers->set('referer', AdminControllerHarness::REFERER);
+        $request = self::bulkRequest([(string) ParcelFixture::PARCEL_ID]);
 
-        $shipment = new FoxPostShipment();
-
-        $entityManager = self::createStub(EntityManagerInterface::class);
-        $entityManager->method('find')->willReturnCallback(
-            static fn (string $class, mixed $id): ?ShipmentInterface => \is_scalar($id) && (int) $id === ParcelFixture::SHIPMENT_ID
-                ? $shipment
-                : null,
+        $selected = ParcelFixture::parcel(
+            FoxpostParcelStatus::RegistrationFailed,
+            null,
+            id: ParcelFixture::PARCEL_ID,
+            shipment: new FoxPostShipment(id: ParcelFixture::SHIPMENT_ID),
         );
+        $decoy = ParcelFixture::parcel(
+            FoxpostParcelStatus::RegistrationFailed,
+            null,
+            id: self::DECOY_PARCEL_ID,
+            shipment: new FoxPostShipment(id: self::DECOY_SHIPMENT_ID),
+        );
+
+        $registered = [];
+
+        $controller = new FoxPostParcelController();
+        AdminControllerHarness::wire($controller, $request);
+
+        $controller->bulkRegister(
+            $request,
+            $this->recordingRegistrationService($http, $registered),
+            new EligibilityChecker(),
+            $this->parcelRepository([
+                ParcelFixture::PARCEL_ID => $selected,
+                self::DECOY_PARCEL_ID => $decoy,
+            ]),
+        );
+
+        self::assertSame(
+            [ParcelFixture::SHIPMENT_ID],
+            $registered,
+            'A tömeges feladás nem a kijelölt CSOMAG mögötti szállítmányra ment.',
+        );
+    }
+
+    /**
+     * A tömeges feladás összegző flash-e mindhárom darabszámot kiírja, és
+     * egyetlen rossz azonosító sem állítja le a kört.
+     *
+     * A bemenet négy eleme szándékosan négy külön ágat jár be: egy feladható
+     * csomag, egy már feladott (kihagyott), egy nem létező azonosító és egy
+     * nem skalár érték (amit egy kézzel küldött POST adhat).
+     */
+    public function testBulkRegisterCountsSuccessesSkipsAndFailures(): void
+    {
+        $http = new MockHttpClient();
+        $http->addResponse(new Response(200, ['Content-Type' => 'application/json'], self::VALID_API_RESPONSE));
+
+        $request = self::bulkRequest([
+            (string) ParcelFixture::PARCEL_ID,
+            (string) self::DECOY_PARCEL_ID,
+            '9999',
+            ['tömb'],
+        ]);
 
         $controller = new FoxPostParcelController();
         $session = AdminControllerHarness::wire($controller, $request);
@@ -373,13 +429,104 @@ final class FoxPostParcelControllerTest extends TestCase
             $request,
             $this->registrationService($http),
             new EligibilityChecker(),
-            $entityManager,
+            $this->parcelRepository([
+                ParcelFixture::PARCEL_ID => ParcelFixture::parcel(
+                    FoxpostParcelStatus::RegistrationFailed,
+                    null,
+                    shipment: new FoxPostShipment(),
+                ),
+                self::DECOY_PARCEL_ID => ParcelFixture::parcel(
+                    FoxpostParcelStatus::Delivered,
+                    shipment: new FoxPostShipment(id: self::DECOY_SHIPMENT_ID),
+                ),
+            ]),
         );
 
         $flashes = AdminControllerHarness::flashes($session);
 
         self::assertArrayHasKey('success', $flashes);
-        self::assertSame('Tömeges feladás kész: 1 sikeres, 2 hibás.', $flashes['success'][0]);
+        self::assertSame(
+            'Tömeges feladás kész: 1 sikeres, 1 kihagyva (már feladva), 2 hibás.',
+            $flashes['success'][0],
+        );
+    }
+
+    /**
+     * Egy már feladott csomagra NEM mehet API-hívás. A csomaglista „jelöld ki
+     * mindet" kijelölése ugyanis a már feladott sorokat is beküldi, a
+     * FoxPostnál pedig minden feladás pénzbe kerül — a szolgáltatás
+     * `\LogicException`-je itt már késő lenne, mert az a hibaszámlálóba esne,
+     * és egy ártalmatlan kijelölést hibás futásnak mutatna.
+     */
+    #[DataProvider('alreadyRegisteredStatusProvider')]
+    public function testBulkRegisterSkipsAnAlreadyRegisteredParcelWithoutAnApiCall(
+        FoxpostParcelStatus $status,
+    ): void {
+        $http = new MockHttpClient();
+        $request = self::bulkRequest([(string) ParcelFixture::PARCEL_ID]);
+
+        $controller = new FoxPostParcelController();
+        $session = AdminControllerHarness::wire($controller, $request);
+
+        $controller->bulkRegister(
+            $request,
+            $this->registrationService($http),
+            new EligibilityChecker(),
+            $this->parcelRepository([
+                ParcelFixture::PARCEL_ID => ParcelFixture::parcel($status, shipment: new FoxPostShipment()),
+            ]),
+        );
+
+        self::assertCount(0, $http->getRequests(), \sprintf(
+            'A `%s` állapotú csomagra újabb FoxPost API-hívás ment.',
+            $status->value,
+        ));
+        self::assertSame(
+            'Tömeges feladás kész: 0 sikeres, 1 kihagyva (már feladva), 0 hibás.',
+            AdminControllerHarness::flashes($session)['success'][0],
+        );
+    }
+
+    /** @return iterable<string, array{FoxpostParcelStatus}> */
+    public static function alreadyRegisteredStatusProvider(): iterable
+    {
+        foreach (FoxpostParcelStatus::cases() as $status) {
+            if ($status->isRegisteredOrBeyond()) {
+                yield $status->value => [$status];
+            }
+        }
+    }
+
+    /**
+     * A csomagsor mögött a HOST szállítmánya áll — ha a bolt nem építette be a
+     * plugin szerződését (`FoxPostShipmentInterface`), a feladás nem indulhat
+     * el. Ez nem elméleti: a `register()` metszet-típust kér
+     * (`ShipmentInterface&FoxPostShipmentInterface`), tehát enélkül `TypeError`
+     * jönne — 500-as hibalap egy összegző flash helyett.
+     */
+    public function testBulkRegisterCountsAParcelWhoseShipmentLacksThePluginContractAsFailed(): void
+    {
+        $http = new MockHttpClient();
+        $request = self::bulkRequest([(string) ParcelFixture::PARCEL_ID]);
+
+        $controller = new FoxPostParcelController();
+        $session = AdminControllerHarness::wire($controller, $request);
+
+        $controller->bulkRegister(
+            $request,
+            $this->registrationService($http),
+            new EligibilityChecker(),
+            // A `ParcelFixture` alapértelmezése a Sylius sima `Shipment`-je.
+            $this->parcelRepository([
+                ParcelFixture::PARCEL_ID => ParcelFixture::parcel(FoxpostParcelStatus::RegistrationFailed, null),
+            ]),
+        );
+
+        self::assertCount(0, $http->getRequests());
+        self::assertSame(
+            'Tömeges feladás kész: 0 sikeres, 0 kihagyva (már feladva), 1 hibás.',
+            AdminControllerHarness::flashes($session)['success'][0],
+        );
     }
 
     // -------------------------------------------------------------------------
@@ -417,6 +564,66 @@ final class FoxPostParcelControllerTest extends TestCase
             $entityManager,
             ParcelWorkflow::stateMachine(),
         );
+    }
+
+    /**
+     * Ugyanaz, mint a `registrationService()`, de a feladásra átadott
+     * szállítmányok azonosítóját is kiírja — a #208 szerződése pont erről
+     * szól. A szolgáltatás a csomagrekordot `persist()`-eli, és azon áll a
+     * szállítmány, amire a feladás ment.
+     *
+     * @param list<int> $registeredShipmentIds
+     */
+    private function recordingRegistrationService(
+        MockHttpClient $http,
+        array &$registeredShipmentIds,
+    ): FoxPostParcelRegistrationService {
+        $repository = self::createStub(FoxpostParcelRepository::class);
+        $repository->method('findOneByShipment')->willReturn(null);
+
+        $entityManager = self::createStub(EntityManagerInterface::class);
+        $entityManager->method('persist')->willReturnCallback(
+            static function (object $entity) use (&$registeredShipmentIds): void {
+                if ($entity instanceof FoxpostParcel) {
+                    $registeredShipmentIds[] = $entity->getShipment()->getId();
+                }
+            },
+        );
+
+        $psr17 = new Psr17Factory();
+
+        return new FoxPostParcelRegistrationService(
+            new Client($http, $psr17, $psr17, 'felhasznalo', 'jelszo', 'kulcs', Environment::Production),
+            new FoxPostParcelPayloadFactory(),
+            $repository,
+            $entityManager,
+            ParcelWorkflow::stateMachine(),
+        );
+    }
+
+    /**
+     * A csomaglista kijelölése: azonosító → csomagsor. A tömeges feladás CSAK
+     * ezen keresztül jut adathoz (`find()`), szállítmányt nem keres.
+     *
+     * @param array<int, FoxpostParcel> $byId
+     */
+    private function parcelRepository(array $byId): FoxpostParcelRepository
+    {
+        $repository = self::createStub(FoxpostParcelRepository::class);
+        $repository->method('find')->willReturnCallback(
+            static fn (mixed $id): ?FoxpostParcel => \is_int($id) ? ($byId[$id] ?? null) : null,
+        );
+
+        return $repository;
+    }
+
+    /** @param list<mixed> $ids */
+    private static function bulkRequest(array $ids): Request
+    {
+        $request = Request::create('/admin/foxpost/parcels/bulk-register', 'POST', ['ids' => $ids]);
+        $request->headers->set('referer', AdminControllerHarness::REFERER);
+
+        return $request;
     }
 
     /**

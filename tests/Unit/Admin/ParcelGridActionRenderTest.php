@@ -85,6 +85,11 @@ final class ParcelGridActionRenderTest extends TestCase
             'expected' => 'action="/admin/foxpost/parcels/' . ParcelFixture::PARCEL_ID . '/cancel"',
             'status' => FoxpostParcelStatus::Registered,
         ],
+        'bulk/register' => [
+            'group' => 'bulk',
+            'expected' => 'action="/admin/foxpost/parcels/bulk-register"',
+            'status' => FoxpostParcelStatus::RegistrationFailed,
+        ],
         'bulk/label' => [
             'group' => 'bulk',
             'expected' => 'action="/admin/foxpost/labels/download-bulk"',
@@ -228,6 +233,68 @@ final class ParcelGridActionRenderTest extends TestCase
 
         self::assertStringContainsString('data-bulk-delete="index"', $rendered);
         self::assertStringContainsString('method="post"', $rendered);
+    }
+
+    /**
+     * A két tömeges akció UGYANAZT a kijelölést olvassa, tehát ugyanazt is
+     * kapja: a Sylius `bulk-delete.js`-e a `data-bulk-delete` értékével
+     * megadott jelölő-csoport bejelölt elemeinek értékét csatolja `ids[]`-ben,
+     * és a sor-jelölők értéke a SOR azonosítója. Két különböző csoportnév (vagy
+     * egy hiányzó attribútum) azt jelentené, hogy a két gomb máshonnan szedi
+     * az azonosítókat — pedig egyetlen kijelölés van a lapon.
+     *
+     * Ez a #208 szerződésének felületi fele: a `bulkRegister()` és a
+     * `downloadBulk()` is CSOMAG-azonosítót olvas, mert a grid sorai csomagok.
+     */
+    public function testBothBulkActionsReadTheSameRowSelection(): void
+    {
+        $groups = [];
+
+        foreach (self::definition()->getActionGroup('bulk')->getActions() as $action) {
+            $rendered = $this->render('bulk', $action, null);
+
+            self::assertMatchesRegularExpression(
+                '/<form[^>]+method="post"/',
+                $rendered,
+                \sprintf('A `bulk/%s` akció nem POST formot rendel.', $action->getName()),
+            );
+
+            $group = self::selectionGroupOf($rendered);
+
+            self::assertNotNull(
+                $group,
+                \sprintf(
+                    'A `bulk/%s` akció formján nincs `data-bulk-delete` attribútum, tehát a Sylius ' .
+                    '`bulk-delete.js`-e nem csatol hozzá `ids[]` inputot: a gomb azonosítók nélkül küld.',
+                    $action->getName(),
+                ),
+            );
+
+            $groups[$action->getName()] = $group;
+        }
+
+        self::assertGreaterThan(1, \count($groups), 'Ez a teszt legalább két tömeges akciót mér.');
+        self::assertCount(
+            1,
+            array_unique($groups),
+            'A tömeges akciók különböző jelölő-csoportból olvasnák az azonosítókat: ' . json_encode($groups),
+        );
+        self::assertSame(
+            ['index'],
+            array_values(array_unique($groups)),
+            'A csoportnév nem szabadon választott: a Sylius `shared/helper/table.html.twig`-je ' .
+            '`index` néven teszi ki a sor-jelölőket, és az értékük a sor `id`-ja.',
+        );
+    }
+
+    /** A form `data-bulk-delete` attribútumának értéke — a jelölő-csoport neve. */
+    private static function selectionGroupOf(string $rendered): ?string
+    {
+        if (preg_match('/data-bulk-delete="([^"]+)"/', $rendered, $matches) !== 1) {
+            return null;
+        }
+
+        return $matches[1];
     }
 
     private function render(string $group, Action $action, mixed $data): string
