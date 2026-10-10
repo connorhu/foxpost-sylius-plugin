@@ -4,13 +4,34 @@
 # entitására, a templates: útvonalak a @CodeConjureSyliusFoxPostPlugin/admin/
 # parcel/… alakra.
 #
-# A `deliveryKind` mező HARMADIK, ezen felüli eltérés: a mag DeliveryKind enum
-# `->value`-ja slug (pl. `foxpost_home_delivery`), és a Sylius grid `string`
-# mezőtípusa a nyers property-t `(string) $value`-vel castolja — ez egy backed
-# enum példányon `Error: Object of class ... could not be converted to string`
-# hibát dob (lemérve: php -r 'enum F: int {case A=1;} echo (string) F::A;').
-# A `type: twig` + saját sablon így NEM választható, hanem KÖTELEZŐ.
+# A `deliveryKind` és az `internalStatus` mező HARMADIK, ezen felüli eltérés: a
+# mag DeliveryKind és a FoxpostParcelStatus is backed enum, a Sylius grid
+# `string` mezőtípusa pedig a nyers property-t `(string) $value`-vel castolja —
+# ez egy backed enum példányon `Error: Object of class ... could not be
+# converted to string` hibát dob (lemérve: php -r 'enum F: int {case A=1;} echo
+# (string) F::A;'). A `type: twig` + saját sablon így NEM választható, hanem
+# KÖTELEZŐ. A `deliveryKind` a kiszervezéskor kapta meg, az `internalStatus` a
+# #185-ben — azt mérve az ELSŐ valódi csomagsor 500-ra vitte az admin
+# csomaglistát (őr: tests/Unit/Admin/ParcelGridFieldRenderTest.php).
 sylius_grid:
+    # A grid öt akciójának sablonja. A Sylius akció-renderelője a sablont az
+    # akció `template:` kulcsából vagy a TÍPUSHOZ regisztrált sablonból veszi
+    # (`TwigGridRenderer::renderAction()`); az `options.template` kulcsot nem
+    # olvassa. A kiszervezés óta a #198-ig itt `type: links` +
+    # `options.template` állt, vagyis a Sylius a saját generikus `links`
+    # sablonjára esett vissza (az `options.links` listát járja be, amit ez a
+    # grid nem ad), a plugin öt saját akció-sablonja pedig halott kód volt:
+    # soha nem renderelte semmi. A saját típusnév + ez a regisztráció a
+    # Sylius bevett megoldása (l. a `ship_with_tracking_code`-ot a
+    # SyliusAdminBundle config.yml-jében), és hangosan bukik, ha elcsúszik:
+    # "Missing template for action type".
+    templates:
+        action:
+            foxpost_register: '@CodeConjureSyliusFoxPostPlugin/admin/parcel/_grid_register_action.html.twig'
+            foxpost_label: '@CodeConjureSyliusFoxPostPlugin/admin/parcel/_grid_label_action.html.twig'
+            foxpost_cancel: '@CodeConjureSyliusFoxPostPlugin/admin/parcel/_grid_cancel_action.html.twig'
+        bulk_action:
+            foxpost_bulk_label: '@CodeConjureSyliusFoxPostPlugin/admin/parcel/_grid_bulk_label_action.html.twig'
     grids:
         app_admin_foxpost_parcel:
             driver:
@@ -36,9 +57,11 @@ sylius_grid:
                     options:
                         template: '@CodeConjureSyliusFoxPostPlugin/admin/parcel/_grid_delivery_kind.html.twig'
                 internalStatus:
-                    type: string
+                    type: twig
                     label: codeconjure.foxpost.ui.status
                     sortable: ~
+                    options:
+                        template: '@CodeConjureSyliusFoxPostPlugin/admin/parcel/_grid_status.html.twig'
                 createdAt:
                     type: datetime
                     label: sylius.ui.created_at
@@ -58,6 +81,11 @@ sylius_grid:
                     label: codeconjure.foxpost.ui.barcode
                     options:
                         fields: [barcode]
+                # A választéklista a `FoxpostParcelStatus` MIND a 13 esetét
+                # tartalmazza. A #198-ig tízet tartalmazott: a
+                # `pending_registration`, a `delivery_failed` és a `returned`
+                # állapotú csomagokra nem lehetett rászűrni, pedig a tracking
+                # szinkron és a feladás is állít rájuk.
                 internalStatus:
                     type: select
                     label: codeconjure.foxpost.ui.status
@@ -66,6 +94,7 @@ sylius_grid:
                         choices:
                             codeconjure.foxpost.ui.status.eligible: eligible
                             codeconjure.foxpost.ui.status.validation_failed: validation_failed
+                            codeconjure.foxpost.ui.status.pending_registration: pending_registration
                             codeconjure.foxpost.ui.status.registration_failed: registration_failed
                             codeconjure.foxpost.ui.status.registered: registered
                             codeconjure.foxpost.ui.status.label_ready: label_ready
@@ -73,32 +102,28 @@ sylius_grid:
                             codeconjure.foxpost.ui.status.handed_over: handed_over
                             codeconjure.foxpost.ui.status.in_transit: in_transit
                             codeconjure.foxpost.ui.status.delivered: delivered
+                            codeconjure.foxpost.ui.status.delivery_failed: delivery_failed
                             codeconjure.foxpost.ui.status.cancelled: cancelled
+                            codeconjure.foxpost.ui.status.returned: returned
             actions:
                 item:
                     register:
-                        type: links
+                        type: foxpost_register
                         label: codeconjure.foxpost.ui.register
-                        options:
-                            template: '@CodeConjureSyliusFoxPostPlugin/admin/parcel/_grid_register_action.html.twig'
                     label:
-                        type: links
+                        type: foxpost_label
                         label: codeconjure.foxpost.ui.label
-                        options:
-                            template: '@CodeConjureSyliusFoxPostPlugin/admin/parcel/_grid_label_action.html.twig'
                     cancel:
-                        type: links
+                        type: foxpost_cancel
                         label: codeconjure.foxpost.ui.cancel
-                        options:
-                            template: '@CodeConjureSyliusFoxPostPlugin/admin/parcel/_grid_cancel_action.html.twig'
                 bulk:
-                    register:
-                        type: links
-                        label: codeconjure.foxpost.ui.bulk_register
-                        options:
-                            template: '@CodeConjureSyliusFoxPostPlugin/admin/parcel/_grid_bulk_register_action.html.twig'
+                    # Tömeges FELADÁS szándékosan NINCS. A Sylius tömeges
+                    # mechanizmusa a kijelölt SOROK azonosítóit küldi (itt:
+                    # csomag-id-k), a `bulk_register` route viszont
+                    # SZÁLLÍTMÁNY-id-kat vár — a kettő összekötése más
+                    # szállítmányokra adna fel csomagot. A route és a
+                    # controller megvan, a grid-akció visszatételéhez a
+                    # paraméter-szerződést kell eldönteni.
                     label:
-                        type: links
+                        type: foxpost_bulk_label
                         label: codeconjure.foxpost.ui.bulk_label
-                        options:
-                            template: '@CodeConjureSyliusFoxPostPlugin/admin/parcel/_grid_bulk_label_action.html.twig'

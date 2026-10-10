@@ -1,6 +1,9 @@
-<form method="post" action="{{ path('app_admin_foxpost_label_download_bulk') }}">
-    {% for id in ids %}
-        <input type="hidden" name="ids[]" value="{{ id }}">
-    {% endfor %}
-    <button type="submit" class="ui mini button">Tömeges címke</button>
+{# A kijelölt sorok azonosítóit a Sylius admin generikus tömeges
+   mechanizmusa csatolja `ids[]` inputként: a `bulk-delete.js` minden
+   `[data-bulk-delete]` formra felköt egy submit-figyelőt, és a
+   `[data-check-all-group="<érték>"]` jelölők közül a bejelölteket küldi. A
+   csoportnév ezért kötött: a Sylius `shared/helper/table.html.twig`-je
+   `index` néven teszi ki a sor-jelölőket. #}
+<form method="post" action="{{ path('app_admin_foxpost_label_download_bulk') }}" data-bulk-delete="index">
+    <button type="submit" class="btn">{{ action.label|trans }}</button>
 </form>

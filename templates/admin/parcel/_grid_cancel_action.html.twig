@@ -1,6 +1,6 @@
-{% if resource.internalStatus.value in ['registered','label_ready','packed'] %}
-    <form method="post" action="{{ path('app_admin_foxpost_parcel_cancel', {id: resource.id}) }}">
-        <button type="submit" class="ui mini red button"
-                onclick="return confirm('Biztosan?')">Mégse</button>
+{% if data.internalStatus.value in ['registered', 'label_ready', 'packed'] %}
+    <form method="post" action="{{ path('app_admin_foxpost_parcel_cancel', {id: data.id}) }}">
+        <button type="submit" class="btn btn-danger"
+                onclick="return confirm('{{ 'codeconjure.foxpost.ui.cancel_confirm'|trans }}')">{{ action.label|trans }}</button>
     </form>
 {% endif %}

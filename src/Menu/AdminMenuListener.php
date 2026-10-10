@@ -24,9 +24,17 @@ final class AdminMenuListener
             ->setLabelAttribute('icon', 'tabler:package')
             ->setExtra('routes', [['pattern' => '/^app_admin_foxpost_/']]);
 
-        // Reorder: insert foxpost_parcels before shipments
+        // Átrendezés: a FoxPost-pont a szállítmányok ELÉ kerül.
+        //
+        // Az `array_values()` nem kozmetika: az `array_filter` MEGTARTJA a
+        // kulcsokat, az `array_search` tehát KULCSOT ad vissza, az
+        // `array_splice` viszont OFFSZETET vár. Amíg a kiszűrt elem a lista
+        // végén volt, a kettő egybeesett; ha nem (pl. a listener kétszer fut,
+        // vagy a bolt maga is felvette a pontot), a beszúrás elcsúszik, és a
+        // menüpont a szállítmányok UTÁN jelenik meg. Őr:
+        // tests/Unit/Menu/AdminMenuListenerTest.php
         $children = array_keys($sales->getChildren());
-        $children = array_filter($children, static fn (string $k): bool => $k !== 'foxpost_parcels');
+        $children = array_values(array_filter($children, static fn (string $k): bool => $k !== 'foxpost_parcels'));
         $pos = array_search('shipments', $children, true);
         if ($pos !== false) {
             array_splice($children, (int) $pos, 0, ['foxpost_parcels']);

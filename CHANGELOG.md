@@ -8,6 +8,48 @@ kompatibilisek.
 
 ## [Nem kiadott]
 
+### Javítva
+
+- **Az admin csomaglista az első valódi csomagsoron 500-as hibára futott**
+  (#185): az `internalStatus` mező `type: string`-gel volt beállítva, a
+  Sylius `StringFieldType` pedig `(string) $value`-vel castol, ami egy backed
+  enumon fatális hiba. A mező mostantól `type: twig`, és fordított
+  állapotnevet jelenít meg. Addig nem derült ki, hogy a `foxpost_parcel`
+  tábla üres volt, tehát a grid soha nem rendelt sort.
+- **A grid öt akció-sablonja halott kód volt** (#198): a kiszervezés
+  `type: links` + `options.template` párral vette át őket, a Sylius
+  akció-renderelője viszont az `options.template` kulcsot nem olvassa — a
+  Sylius generikus `links` sablonjára esett vissza, ami egy üres legördülőt
+  rendelt. Az akciók mostantól saját típusnévvel és a
+  `sylius_grid.templates.action`/`.bulk_action` regisztrációval kötődnek a
+  plugin sablonjaihoz. A sablonok a renderelő VALÓDI változóit használják
+  (`data`, `action`) a nem létező `resource`/`ids` helyett, a tömeges
+  címke-letöltés pedig a Sylius admin generikus tömeges kijelölését
+  (`data-bulk-delete`).
+- **Hiányzó állapot-fordítások** (#185): a `FoxpostParcelStatus` 13 esete
+  közül a `pending_registration`, a `delivery_failed` és a `returned`
+  fordítás nélkül volt, és a grid állapot-szűrőjéből is kimaradt.
+- **Az admin menüpont a szállítmányok UTÁN csúszhatott** (#198): az
+  átrendezés `array_filter` utáni kulcsot adott át az `array_splice`
+  offszetének.
+
+### Változott
+
+- **Tömeges feladás nincs többé a csomaglista akciói között** (#198). A
+  Sylius tömeges kijelölése a SOROK (csomagok) azonosítóit küldi, a
+  `bulk_register` route viszont szállítmány-azonosítókat vár — a kettő
+  összekötése más szállítmányokra adott volna fel csomagot. A route és a
+  controller megmaradt; a grid-akció a paraméter-szerződés eldöntése után
+  kerülhet vissza.
+
+### Hozzáadva
+
+- **Az admin réteg tesztfedezete** (#198): a grid mező- és
+  akció-renderelése egy valódi csomagsoron (a Sylius igazi renderelőivel, a
+  plugin valódi route-gyűjteményén és fordítási katalógusán), a két admin
+  controller mind a hat route-ja, és a menü listener. A tesztek
+  teszt-kernel nélkül futnak: 183 → 280 teszt.
+
 ## [0.1.0] – 2026-10-10
 
 Az első kiadás. Tartalma a FoxPost integráció kiszervezése a
@@ -51,7 +93,8 @@ csomagba került, a protokoll-réteg a
   extension a `foxpostSameAsBilling`/`foxpostAddress` mezőkkel a #99 után
   kerül át (#199).
 - **Az admin réteg tesztfedezete hiányos**: a grid, a két controller és a hét
-  route nincs lefedve (#198).
+  route nincs lefedve (#198). *(A `0.1.0` óta megoldva — l. a Nem kiadott
+  szakaszt.)*
 
 [Nem kiadott]: https://github.com/connorhu/foxpost-sylius-plugin/compare/0.1.0...main
 [0.1.0]: https://github.com/connorhu/foxpost-sylius-plugin/releases/tag/0.1.0
