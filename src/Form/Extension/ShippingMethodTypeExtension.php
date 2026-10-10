@@ -21,7 +21,7 @@ final class ShippingMethodTypeExtension extends AbstractTypeExtension
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder->add('foxpostDefaultSize', ChoiceType::class, [
-            'label' => 'app.form.shipping_method.foxpost_default_size',
+            'label' => 'codeconjure.foxpost.shipping_method.default_size',
             'required' => false,
             'choices' => [
                 'XS' => 'xs',
@@ -30,7 +30,7 @@ final class ShippingMethodTypeExtension extends AbstractTypeExtension
                 'L' => 'l',
                 'XL' => 'xl',
             ],
-            'placeholder' => 'app.form.shipping_method.foxpost_default_size_placeholder',
+            'placeholder' => 'codeconjure.foxpost.shipping_method.default_size_placeholder',
         ]);
     }
 

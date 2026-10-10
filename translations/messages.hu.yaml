@@ -1,9 +1,55 @@
-# A `app.ui.foxpost.*` ág a csomaglista admin gridjének (src/Resources/config/app/grid.yaml)
-# saját fordítási kulcsai. A bolt gridje ugyanezekre a kulcsokra hivatkozott,
-# de LEFORDÍTATLANUL — ez a fa mérve hiányzott a bolt messages.hu.yaml-jából.
-app:
-    ui:
-        foxpost:
+# A plugin SAJÁT fordítási névtere: `codeconjure.foxpost.*`. A fa csoportjai:
+#   - `delivery_kind.*`, `address.*`, `checkout.*`, `pickup_point.*` — a boltból
+#     a #116 kiszervezéskor átvett kulcsfák;
+#   - `channel.*`, `shipping_method.*` — a két admin form extension mezőcímkéi
+#     (src/Form/Extension/);
+#   - `ui.*` — az admin csomaglista gridje (src/Resources/config/app/grid.yaml)
+#     és az admin menüpont (src/Menu/AdminMenuListener.php).
+#
+# A #192 előtt az utolsó két csoport a host `app.*` névterében élt, vagyis a
+# plugin a befogadó bolt kulcsfájába írt, és csak abban az egy boltban volt
+# lefordítva, ami maga szállította a kulcsokat. A névtér-szerződést a
+# tests/Unit/TranslationNamespaceTest.php őrzi.
+#
+# Átvéve a bolt messages.hu.yaml-jából (a kulcsfákkal együtt):
+#   - sylius.form.shipping_method.delivery_kind.choice.foxpost_home_delivery/
+#     foxpost_parcel_locker  -> delivery_kind.foxpost_home_delivery/foxpost_parcel_locker
+#     (a leaf-kulcs szándékosan egyezik a mag DeliveryKind::value-jával, l.
+#     templates/admin/parcel/_grid_delivery_kind.html.twig)
+#   - app.form.foxpost_address                -> address.*
+#   - app.form.channel.foxpost_label_page_size(_placeholder) -> channel.label_page_size(_placeholder)
+#   - app.checkout.foxpost_home_delivery/foxpost_parcel_locker -> checkout.home_delivery/parcel_locker
+#   - app.foxpost.pickup_point.*               -> pickup_point.*
+#   - app.ui.foxpost.*                         -> ui.*
+# A `shipping_method.default_size(_placeholder)` párnak nem volt bolt-oldali
+# fordítása: a mezőcímke mérve nyers kulcsként jelent meg az admin
+# szállításimód-űrlapon.
+codeconjure:
+    foxpost:
+        delivery_kind:
+            foxpost_home_delivery: FoxPost házhozszállítás
+            foxpost_parcel_locker: FoxPost csomagautomata
+        address:
+            country_code.not_blank: Ország megadása kötelező.
+            postcode.not_blank: Irányítószám megadása kötelező.
+            city.not_blank: Város megadása kötelező.
+            street.not_blank: Utca, házszám megadása kötelező.
+            phone_number.not_blank: Telefonszám megadása kötelező.
+        channel:
+            label_page_size: Foxpost cimke méret
+            label_page_size_placeholder: Nincs megadva
+        shipping_method:
+            default_size: Foxpost alapértelmezett csomagméret
+            default_size_placeholder: Nincs megadva
+        checkout:
+            home_delivery:
+                address_title: Szállítási cím
+            parcel_locker:
+                title: Csomagautomata adatai
+        pickup_point:
+            select: Csomagautomata kiválasztása
+            change: Csomagautomata módosítása
+        ui:
             parcels: FoxPost csomagok
             order_number: Rendelésszám
             barcode: Vonalkód
@@ -25,36 +71,3 @@ app:
             cancel: Mégse
             bulk_register: Tömeges feladás
             bulk_label: Tömeges címke
-
-# Átvéve a bolt messages.hu.yaml-jából (8 foxpost-érintett sor, az alattuk lévő
-# kulcsfákkal), a codeconjure.foxpost. prefix alá:
-#   - sylius.form.shipping_method.delivery_kind.choice.foxpost_home_delivery/
-#     foxpost_parcel_locker  -> delivery_kind.foxpost_home_delivery/foxpost_parcel_locker
-#     (a leaf-kulcs szándékosan egyezik a mag DeliveryKind::value-jával, l.
-#     templates/admin/parcel/_grid_delivery_kind.html.twig)
-#   - app.form.foxpost_address                -> address.*
-#   - app.form.channel.foxpost_label_page_size(_placeholder) -> channel.label_page_size(_placeholder)
-#   - app.checkout.foxpost_home_delivery/foxpost_parcel_locker -> checkout.home_delivery/parcel_locker
-#   - app.foxpost.pickup_point.*               -> pickup_point.* (a meglévő foxpost kulcsfa)
-codeconjure:
-    foxpost:
-        delivery_kind:
-            foxpost_home_delivery: FoxPost házhozszállítás
-            foxpost_parcel_locker: FoxPost csomagautomata
-        address:
-            country_code.not_blank: Ország megadása kötelező.
-            postcode.not_blank: Irányítószám megadása kötelező.
-            city.not_blank: Város megadása kötelező.
-            street.not_blank: Utca, házszám megadása kötelező.
-            phone_number.not_blank: Telefonszám megadása kötelező.
-        channel:
-            label_page_size: Foxpost cimke méret
-            label_page_size_placeholder: Nincs megadva
-        checkout:
-            home_delivery:
-                address_title: Szállítási cím
-            parcel_locker:
-                title: Csomagautomata adatai
-        pickup_point:
-            select: Csomagautomata kiválasztása
-            change: Csomagautomata módosítása

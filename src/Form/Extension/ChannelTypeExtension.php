@@ -14,7 +14,7 @@ final class ChannelTypeExtension extends AbstractTypeExtension
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder->add('foxpostLabelPageSize', ChoiceType::class, [
-            'label' => 'app.form.channel.foxpost_label_page_size',
+            'label' => 'codeconjure.foxpost.channel.label_page_size',
             'required' => false,
             'choices' => [
                 'A5' => 'A5',
@@ -22,7 +22,7 @@ final class ChannelTypeExtension extends AbstractTypeExtension
                 'A7' => 'A7',
                 '85×85' => '_85X85',
             ],
-            'placeholder' => 'app.form.channel.foxpost_label_page_size_placeholder',
+            'placeholder' => 'codeconjure.foxpost.channel.label_page_size_placeholder',
         ]);
     }
 
