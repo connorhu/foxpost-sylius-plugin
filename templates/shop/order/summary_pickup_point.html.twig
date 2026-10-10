@@ -1,0 +1,22 @@
+{# Az átvételi pont a rendelés-összegző szállítási blokkjában.
+
+   A host sablonja (`sylius_shop.shared.order.show.summary.addresses.shipping`
+   → `body`) szolgáltatófüggetlen kérdést tesz fel — a szállítási mód átvételi
+   pontos-e —, és erre a hookra bízza a megjelenítést. A #193 előtt a bolt
+   sablonja illesztett a host enum `FoxPostParcelLocker` case-ére, és ő hívta a
+   plugin `foxpost_pickup_point` szűrőjét; emiatt a plugint nem lehetett
+   eltávolítani (`UnknownExtension`), más bolt pedig meg sem kapta ezt a sort.
+
+   A hook nevét (`…addresses.shipping.pickup_point`) a Sylius nem foglalja, így
+   ezt a bejegyzést a plugin `prepend()`-je ténylegesen hozzáadja — host-oldali
+   beavatkozás nélkül.
+
+   A `foxpost_handles_delivery()` a szűkítés: egy másik szolgáltató átvételi
+   pontja (pl. a #182 Packeta) ugyanerre a hookra ül, és nem a FoxPost dolga. #}
+{% set shipment = hookable_metadata.context.shipment %}
+
+{% if foxpost_handles_delivery(shipment) and shipment.pickupPointId %}
+    {% set pickup_point = foxpost_pickup_point(shipment.pickupPointId) %}
+    {{ 'codeconjure.foxpost.pickup_point.title'|trans }}: <br>{{ pickup_point.name }}<br>
+    {{ pickup_point.address }}
+{% endif %}
