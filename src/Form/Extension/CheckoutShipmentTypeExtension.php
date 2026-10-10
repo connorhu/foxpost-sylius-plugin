@@ -44,9 +44,9 @@ use Symfony\Component\Validator\Constraints\NotBlank;
  *
  * ## Miért `TelType` a telefonmező alapértelmezése
  *
- * Egy telefonszám-validátor országonként más, és a #115 szerint a bolt
- * `App\Components\Phone` komponense opcionális kiszervezési jelölt — nem ez
- * az issue dönt róla. A plugin ezért azt adja, ami minden boltban helyes: egy
+ * Egy telefonszám-validátor országonként más, és a #115 szerint a bolt saját
+ * telefonszám-komponense (a host `Components\Phone`-ja) opcionális
+ * kiszervezési jelölt — nem ez az issue dönt róla. A plugin ezért azt adja, ami minden boltban helyes: egy
  * `tel` beviteli mezőt és azt az EGY szabályt, ami a FoxPostból következik
  * (a feladáshoz kell telefonszám, ha a mód kéri). A szigorítás a hosté.
  */

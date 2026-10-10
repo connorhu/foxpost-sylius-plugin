@@ -9,14 +9,14 @@ use CodeConjure\SyliusFoxPostPlugin\EligibilityChecker;
 use CodeConjure\SyliusFoxPostPlugin\EligibilityResult;
 use CodeConjure\SyliusFoxPostPlugin\Model\FoxPostShipmentInterface;
 use CodeConjure\SyliusFoxPostPlugin\Model\FoxPostShippingMethodInterface;
-use CodeConjure\SyliusFoxPostPlugin\Tests\Support\HostShipment;
+use CodeConjure\SyliusFoxPostPlugin\Tests\Support\FoxPostShipment;
+use CodeConjure\SyliusFoxPostPlugin\Tests\Support\FoxPostShippingMethod;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\Address;
 use Sylius\Component\Core\Model\Order;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\ShipmentInterface;
-use Sylius\Component\Core\Model\ShippingMethod;
 use Sylius\Component\Shipping\Model\ShippingMethodInterface;
 
 /**
@@ -413,7 +413,7 @@ final class EligibilityCheckerTest extends TestCase
     ): ShipmentInterface&FoxPostShipmentInterface {
         $order ??= $this->order();
 
-        $shipment = new HostShipment($deliveryKindSlug, $pickupPointId, $phoneNumber, $order);
+        $shipment = new FoxPostShipment($deliveryKindSlug, $pickupPointId, $phoneNumber, $order);
 
         // A telefon-kötelezőséget az EligibilityChecker a MÓD
         // `requiresRecipientPhone()`-jából olvassa (I1 javítás), ezért a
@@ -427,31 +427,7 @@ final class EligibilityCheckerTest extends TestCase
 
     private function shippingMethod(bool $requiresRecipientPhone): ShippingMethodInterface&FoxPostShippingMethodInterface
     {
-        return new class($requiresRecipientPhone) extends ShippingMethod implements FoxPostShippingMethodInterface {
-            public function __construct(private readonly bool $requiresPhone)
-            {
-                parent::__construct();
-            }
-
-            public function getFoxpostDefaultSize(): ?string
-            {
-                return null;
-            }
-
-            public function setFoxpostDefaultSize(?string $foxpostDefaultSize): void
-            {
-            }
-
-            public function requiresRecipientPhone(): bool
-            {
-                return $this->requiresPhone;
-            }
-
-            public function getDeliveryKindSlug(): ?string
-            {
-                return null;
-            }
-        };
+        return new FoxPostShippingMethod($requiresRecipientPhone);
     }
 
     private function parcelLockerShipment(

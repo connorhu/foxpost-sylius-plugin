@@ -167,7 +167,7 @@ ugyanazt jelentette, mint egy teljesen sikeres.
 A csomag [SemVer](https://semver.org/lang/hu/) szerint verziózódik, és tagolt
 kiadásokat ad — a kiadások tartalma a [CHANGELOG.md](CHANGELOG.md)-ben van. A
 `0.x` soron a nyilvános API (a host-szerződés interfészei és traitjei is) még
-mozoghat: a mindenkori minor sorra érdemes constraintet írni (`^0.2`),
+mozoghat: a mindenkori minor sorra érdemes constraintet írni (`^0.3`),
 `dev-main`-re nem.
 
 A **támogatott Sylius-sor `~2.1`–`~2.2`** — a `~2.3` ma nem telepíthető (#205).

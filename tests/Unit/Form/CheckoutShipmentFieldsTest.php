@@ -11,7 +11,7 @@ use CodeConjure\SyliusFoxPostPlugin\Form\Extension\CheckoutShipmentTypeExtension
 use CodeConjure\SyliusFoxPostPlugin\Form\Extension\SelectShippingTypeExtension;
 use CodeConjure\SyliusFoxPostPlugin\Form\Type\FoxPostPickupPointSelectType;
 use CodeConjure\SyliusFoxPostPlugin\Model\FoxPostShipmentInterface;
-use CodeConjure\SyliusFoxPostPlugin\Tests\Support\HostShipment;
+use CodeConjure\SyliusFoxPostPlugin\Tests\Support\FoxPostShipment;
 use Http\Mock\Client as MockHttpClient;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -210,7 +210,7 @@ final class CheckoutShipmentFieldsTest extends TestCase
      */
     public function testSubmittingTheFormWritesBothFieldsOntoTheShipment(): void
     {
-        $shipment = new HostShipment();
+        $shipment = new FoxPostShipment();
         $form = $this->formFactory()->create(ShipmentType::class, $shipment);
 
         $form->submit(['phoneNumber' => '+36301234567', 'pickupPointId' => 'HU1234'], false);
@@ -335,7 +335,7 @@ final class CheckoutShipmentFieldsTest extends TestCase
      */
     private function shipmentForm(FormTypeExtensionInterface ...$hostExtensions): FormInterface
     {
-        return $this->formFactory(...$hostExtensions)->create(ShipmentType::class, new HostShipment());
+        return $this->formFactory(...$hostExtensions)->create(ShipmentType::class, new FoxPostShipment());
     }
 
     private function formFactory(FormTypeExtensionInterface ...$hostExtensions): FormFactoryInterface
@@ -373,7 +373,7 @@ final class CheckoutShipmentFieldsTest extends TestCase
         $without = array_keys(
             $this->formFactoryBuilderWithoutThePlugin()
                 ->getFormFactory()
-                ->create(ShipmentType::class, new HostShipment())
+                ->create(ShipmentType::class, new FoxPostShipment())
                 ->all(),
         );
 

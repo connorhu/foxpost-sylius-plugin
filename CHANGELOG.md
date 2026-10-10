@@ -8,6 +8,90 @@ kompatibilisek.
 
 ## [Nem kiadott]
 
+## [0.3.0] – 2026-10-10
+
+**Törő változás a host-szerződésben.** A pénztár szállítási lépése két
+munkában újult meg: a szállítási cím az 1. lépésre költözött (#99), és a
+megmaradt két mód-szintű mezőt mostantól a plugin adja (#199). A befogadó bolt
+két dolgot kell, hogy megtegyen a frissítéskor:
+
+1. a szállítmány-entitásán a `pickupPointId` és a `phoneNumber` mellé **setter**
+   is kell (a `FoxPostShipmentInterface` deklarálja) — a form mostantól ír, nem
+   csak olvas;
+2. a szállítási módján meg kell valósítania a
+   `FoxPostShippingMethodInterface::requiresRecipientPhone()`-t, és el kell
+   hagynia a `FoxPostShipmentTrait`-et (törölve).
+
+### Változott
+
+- **A szállítási cím nincs többé a 2. lépésen** (#99). A `foxpostSameAsBilling`
+  pipa, a `foxpostAddress` mezőkészlet és a belőlük `order.shippingAddress`-t
+  építő SUBMIT listener megszűnt: két igazságforrás volt ugyanarra az adatra,
+  két lépésen. A cím az 1. lépésen dől el, a Sylius saját
+  `differentShippingAddress` kapcsolójával. Következmények:
+  - a `FoxPostShipmentTrait` **törölve** (egyetlen tartalma a
+    `foxpost_same_as_billing` oszlop volt); az oszlopot egy új, mindkét
+    irányban őrzött migráció eldobja;
+  - a `FoxPostParcelPayloadFactory` és az `EligibilityChecker` **mindig** a
+    szállítási címet olvassa;
+  - a `foxpost_fields.html.twig` házhozszállítási cím blokkja megszűnt, és a
+    sablon nem olvassa a `context.order`-t.
+- **A címzett-telefon kötelezőségét a MÓD dönti el, nem a delivery kind**
+  (#99): `FoxPostShippingMethodInterface::requiresRecipientPhone()`. Ez nem
+  kozmetika: a futáros mód is kér telefont, pedig nincs FoxPost típusa, a
+  személyes átvétel pedig nem kér — a nullable enum ezt nem tudta elmondani.
+  Korábban egy üres telefonszámú FoxPost HÁZHOZSZÁLLÍTÁS átment az
+  alkalmassági ellenőrzésen, és a payload factory `recipientPhone: ''`-t
+  küldött ki a FoxPost felé.
+- **A `FoxPostShipmentInterface` két settert kapott**
+  (`setPickupPointId()`, `setPhoneNumber()`) (#199). Amíg a formot a host
+  építette, a plugin csak olvasta a két mezőt; most a plugin adja őket, és egy
+  form a property path-on keresztül ÍR. Getter-only entitáson ez a pénztár
+  szállítási lépését `NoSuchPropertyException`-nel állítja le (mérve) — a
+  követelmény ezért az interfészen áll, ahol a host fordításkor szembesül vele.
+  A TÁROLÁS marad a hosté: mindkét mező szolgáltatófüggetlen.
+
+### Hozzáadva
+
+- **A pénztár két FoxPost-mezője a pluginból jön** (#199), host-oldali form
+  extension nélkül — `Form\Extension\CheckoutShipmentTypeExtension`. Ezzel a
+  kiszervezés (#116) üzleti célja a pénztár lépésén is teljesül: eddig egy
+  másik Sylius bolt az admin oldalt és a feladási logikát megkapta, a vevő
+  által LÁTOTT mezőkészletet nem.
+- **A két mező felülírható alapértelmezés.** A kiterjesztés magas
+  prioritással fut (`CheckoutShipmentTypeExtension::PRIORITY`), tehát egy
+  sima, 0 prioritású host form kiterjesztés bármelyik mezőt lecserélheti —
+  ehhez nincs plugin-oldali konfigurációs felület, és nem is kell. Prioritás
+  nélkül a sorrend fordítva sülne el: a bundle szolgáltatásai a
+  `MergeExtensionConfigurationPass`-ban kerülnek a konténerbe, tehát a host
+  `services.yaml`-ja UTÁN — holtversenyben a plugin írná felül a host dúsabb
+  mezőjét.
+- **A telefonmező alapértelmezése `TelType` + egy `NotBlank`.** A
+  telefonszám-validálás országonként más; a szigorítás a hosté.
+- **Tesztek**: a mezőkészlet valódi Sylius `ShipmentType`-on, valódi
+  `FormFactory`-val és validátor-kiterjesztéssel; a felülírhatóság a valódi
+  Symfony `FormPass`-szal egy `ContainerBuilder`-en; a validációs csoportok a
+  mód flagjéből; és az, hogy a plugin MINDEN hozzáadott mezőjéhez tartozik
+  getter és setter a publikált interfészen (a mezőlista a valódi formból
+  származtatva). 310 → 323 teszt.
+
+### Eltávolítva
+
+- **`FoxPostShipmentTrait`** és a tesztje (l. fentebb).
+- **A `codeconjure.foxpost.address` fordítási kulcsfa** mindkét domainből és
+  mindkét nyelven, valamint a `checkout.home_delivery.address_title` — a #99
+  óta elfogyasztó nélkül voltak.
+
+### Javítva
+
+- **A `phpstan.dist.neon` `trait.unused` ignore-ja** kikerült: az az egy nem
+  használt trait épp a törölt volt, és a PHPStan a nem illeszkedő ignore-t
+  maga is hibának jelzi.
+- **A `TranslationNamespaceTest` a `validators` domaint is nézi.** A
+  constraint-üzenetek oda tartoznak; eddig a teszt csak a `messages`-t
+  olvasta, és ez csak azért nem bukott meg, mert a törölt `address` kulcsfa
+  mindkét domainben duplikálva volt. A nyelvi paritás is domainenként mérve.
+
 ## [0.2.0] – 2026-10-10
 
 **Törő változás egyetlen ponton**: a `bulk_register` admin route mostantól
@@ -233,6 +317,7 @@ csomagba került, a protokoll-réteg a
   a futás eredményét (#173). *(Megoldva a `0.1.3`-ban.)*
 
 [Nem kiadott]: https://github.com/connorhu/foxpost-sylius-plugin/compare/0.1.3...main
+[0.3.0]: https://github.com/connorhu/foxpost-sylius-plugin/compare/0.2.0...0.3.0
 [0.2.0]: https://github.com/connorhu/foxpost-sylius-plugin/compare/0.1.3...0.2.0
 [0.1.3]: https://github.com/connorhu/foxpost-sylius-plugin/compare/0.1.2...0.1.3
 [0.1.2]: https://github.com/connorhu/foxpost-sylius-plugin/compare/0.1.1...0.1.2
