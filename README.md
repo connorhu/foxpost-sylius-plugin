@@ -157,6 +157,14 @@ ezeket összerakja (`PluginRoutes`, `AdminTwig`, `ParcelGrid`,
 `AdminControllerHarness`, `ParcelWorkflow`). A FoxPost API helyén PSR-18 mock
 HTTP kliens áll, tehát a hibaágak is a valódi kivételekből jönnek.
 
+A route-gyűjteményt a `PluginRoutes` a csomag saját `routes.yaml`-jából építi
+fel, a valódi betöltő-lánccal (Symfony `YamlFileLoader` → Sylius
+`ResourceLoader` + FrameworkBundle `AttributeRouteControllerLoader`), és a
+`%sylius_admin.path_name%` előtagot a FrameworkBundle `Router`-e oldja fel —
+így az útvonalak byte-azonosak azzal, amit a befogadó bolt `debug:router`-e
+mutat, és a tesztek egy NEM alapértelmezett admin-útvonalon is mérhetnek
+(#209).
+
 Amit ez a megközelítés szerkezetileg nem lát, az a HOST oldali huzalozás (hogy
 a bolt tényleg importálja a route-okat, betölti a fordításokat, és beépítette
 a traiteket) — azt a befogadó bolt méri, l.
