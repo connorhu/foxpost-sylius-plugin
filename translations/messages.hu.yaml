@@ -40,12 +40,6 @@ codeconjure:
         delivery_kind:
             foxpost_home_delivery: FoxPost házhozszállítás
             foxpost_parcel_locker: FoxPost csomagautomata
-        address:
-            country_code.not_blank: Ország megadása kötelező.
-            postcode.not_blank: Irányítószám megadása kötelező.
-            city.not_blank: Város megadása kötelező.
-            street.not_blank: Utca, házszám megadása kötelező.
-            phone_number.not_blank: Telefonszám megadása kötelező.
         channel:
             label_page_size: Foxpost cimke méret
             label_page_size_placeholder: Nincs megadva
@@ -53,8 +47,12 @@ codeconjure:
             default_size: Foxpost alapértelmezett csomagméret
             default_size_placeholder: Nincs megadva
         checkout:
-            home_delivery:
-                address_title: Szállítási cím
+            # A 2. lépés FoxPost-mezői (#199). A pluginból jövő, host által
+            # felülírható alapértelmezés — l. CheckoutShipmentTypeExtension.
+            pickup_point_id: Csomagautomata
+            phone_number:
+                label: Telefonszám
+                help: A csomagautomata a kiszállításról SMS-t küld erre a számra.
             parcel_locker:
                 title: Csomagautomata adatai
         pickup_point:

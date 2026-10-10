@@ -8,7 +8,15 @@
 
    Ami itt marad, az a MÓDHOZ tartozik, nem a címhez: a címzett telefonja és
    a csomagautomata. Mindkettő feltételes panel, ahogy a design is mutatja
-   (`needsPoint`). #}
+   (`needsPoint`).
+
+   A két mezőt a #199 óta a plugin maga adja a shipment formhoz
+   (`Form\Extension\CheckoutShipmentTypeExtension`) — a hostnak nincs vele
+   dolga. Az `is defined` őrök MÉGIS maradnak: egy host felülírhatja a
+   mezőket (a kiterjesztés prioritása pont ezt engedi), és ha közben el is
+   hagyja valamelyiket, ennek a sablonnak akkor sem szabad render-hibával
+   leállítania a pénztárt — egy `FormView` nem létező gyerekmezőjének
+   közvetlen elérése `strict_variables` mellett `RuntimeError`. #}
 {% set form = hookable_metadata.context.form %}
 
 {% if form.phoneNumber is defined %}

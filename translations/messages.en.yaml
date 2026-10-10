@@ -4,12 +4,6 @@ codeconjure:
         delivery_kind:
             foxpost_home_delivery: 'FoxPost home delivery'
             foxpost_parcel_locker: 'FoxPost parcel locker'
-        address:
-            country_code.not_blank: 'Country is required.'
-            postcode.not_blank: 'Postcode is required.'
-            city.not_blank: 'City is required.'
-            street.not_blank: 'Street and house number are required.'
-            phone_number.not_blank: 'Phone number is required.'
         channel:
             label_page_size: 'FoxPost label size'
             label_page_size_placeholder: 'Not set'
@@ -17,8 +11,10 @@ codeconjure:
             default_size: 'Default FoxPost parcel size'
             default_size_placeholder: 'Not set'
         checkout:
-            home_delivery:
-                address_title: 'Delivery address'
+            pickup_point_id: 'Parcel locker'
+            phone_number:
+                label: 'Phone number'
+                help: 'The parcel locker sends a pickup SMS to this number.'
             parcel_locker:
                 title: 'Parcel locker details'
         pickup_point:
