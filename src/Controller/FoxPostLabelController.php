@@ -15,7 +15,17 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
-#[Route('/admin/foxpost/labels', name: 'app_admin_foxpost_label_')]
+/*
+ * Az útvonal SZÁNDÉKOSAN nem tartalmazza az `/admin` előtagot (#209): azt a
+ * `src/Resources/config/routes.yaml` attribute-importja adja
+ * `/%sylius_admin.path_name%`-ként, ugyanabból a konténer-paraméterből, amire
+ * a Sylius admin tűzfala és a `ROLE_ADMINISTRATION_ACCESS` szabály is épül
+ * (`sylius.security.admin_regex`). Bedrótozott `/admin`-nal egy nem
+ * alapértelmezett admin-útvonalú boltban ezek a műveletek a tűzfalon KÍVÜL
+ * maradnának — mérve: a csomaglista `/backend/foxpost-parcels`-re ment, ez a
+ * hat route pedig `/admin/foxpost/...`-on állt.
+ */
+#[Route('/foxpost/labels', name: 'app_admin_foxpost_label_')]
 final class FoxPostLabelController extends AbstractController
 {
     public function __construct(

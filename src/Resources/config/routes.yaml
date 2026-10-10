@@ -27,6 +27,13 @@ app_admin_foxpost_parcel:
 # A bundle-alias (`@CodeConjureSyliusFoxPostPlugin`) a plugin gyökerére mutat
 # (l. CodeConjureSyliusFoxPostPlugin::getPath()), tehát ez ugyanaz a könyvtár,
 # amit a host importja célzott.
+#
+# Az előtag (#209) ugyanaz, mint a resource-blokké: a hét route EGY paraméterből
+# képződik. A két controller `#[Route]` attribútuma ezért nem ír `/admin`-t — az
+# attribútum útvonala fordítási idejű konstans, konténer-paramétert nem tud
+# feloldani, az importé viszont igen (a `%...%`-ot a FrameworkBundle routere
+# oldja fel: `Router::resolveParameters()`).
 codeconjure_foxpost_controllers:
     resource: '@CodeConjureSyliusFoxPostPlugin/src/Controller/'
     type: attribute
+    prefix: '/%sylius_admin.path_name%'

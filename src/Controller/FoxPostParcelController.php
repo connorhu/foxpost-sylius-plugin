@@ -16,7 +16,17 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 
-#[Route('/admin/foxpost/parcels', name: 'app_admin_foxpost_parcel_')]
+/*
+ * Az útvonal SZÁNDÉKOSAN nem tartalmazza az `/admin` előtagot (#209): azt a
+ * `src/Resources/config/routes.yaml` attribute-importja adja
+ * `/%sylius_admin.path_name%`-ként, ugyanabból a konténer-paraméterből, amire
+ * a Sylius admin tűzfala és a `ROLE_ADMINISTRATION_ACCESS` szabály is épül
+ * (`sylius.security.admin_regex`). Bedrótozott `/admin`-nal egy nem
+ * alapértelmezett admin-útvonalú boltban ezek a műveletek a tűzfalon KÍVÜL
+ * maradnának — mérve: a csomaglista `/backend/foxpost-parcels`-re ment, ez a
+ * hat route pedig `/admin/foxpost/...`-on állt.
+ */
+#[Route('/foxpost/parcels', name: 'app_admin_foxpost_parcel_')]
 final class FoxPostParcelController extends AbstractController
 {
     #[Route('/register/{shipmentId}', name: 'register', methods: ['POST'])]
