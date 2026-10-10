@@ -96,15 +96,24 @@ A menüt a `Menu\AdminMenuListener` minden admin lapon felépíti, tehát ez
 
 Amit ez az egy import ad:
 
-| route | metódus |
-|---|---|
-| `app_admin_foxpost_parcel_index` | GET |
-| `app_admin_foxpost_parcel_register` | POST |
-| `app_admin_foxpost_parcel_cancel` | POST |
-| `app_admin_foxpost_parcel_hand_over` | POST |
-| `app_admin_foxpost_parcel_bulk_register` | POST |
-| `app_admin_foxpost_label_download_single` | GET |
-| `app_admin_foxpost_label_download_bulk` | POST |
+| route | metódus | útvonal |
+|---|---|---|
+| `app_admin_foxpost_parcel_index` | GET | `/{admin}/foxpost-parcels/` |
+| `app_admin_foxpost_parcel_register` | POST | `/{admin}/foxpost/parcels/register/{shipmentId}` |
+| `app_admin_foxpost_parcel_cancel` | POST | `/{admin}/foxpost/parcels/{id}/cancel` |
+| `app_admin_foxpost_parcel_hand_over` | POST | `/{admin}/foxpost/parcels/{id}/hand-over` |
+| `app_admin_foxpost_parcel_bulk_register` | POST | `/{admin}/foxpost/parcels/bulk-register` |
+| `app_admin_foxpost_label_download_single` | GET | `/{admin}/foxpost/labels/download/{id}` |
+| `app_admin_foxpost_label_download_bulk` | POST | `/{admin}/foxpost/labels/download-bulk` |
+
+A táblázat `{admin}` helyén **a bolt admin-útvonala** áll: mind a hét route a
+`sylius_admin.path_name` konténer-paraméterből kapja az előtagot, vagyis a
+`SYLIUS_ADMIN_ROUTING_PATH_NAME` környezeti változót követi (alapértelmezésben
+`admin`). A boltnak ezzel nincs dolga — de érdemes tudni, hogy ez **nem
+mindig** volt így: a 0.1.2 előtt a hat művelet-route bedrótozott `/admin`
+előtagot használt, és egy nem alapértelmezett admin-útvonalú boltban kiesett a
+`ROLE_ADMINISTRATION_ACCESS` szabály (`path: "%sylius.security.admin_regex%"`)
+alól (#209).
 
 > A `bulk_register` route-hoz **ma nincs grid-akció**: a Sylius tömeges
 > kijelölése a sorok (csomagok) azonosítóit küldi, ez a route viszont
@@ -314,8 +323,10 @@ extension konfigurációja: `framework`, `sylius_resource`, `sylius_grid`,
 A telepítés után ez az öt parancs méri meg, hogy minden a helyén van:
 
 ```bash
-# 1. A hét admin route létezik
+# 1. A hét admin route létezik, és MIND az admin-útvonal alatt
 bin/console debug:router | grep -c foxpost          # → 7
+bin/console debug:router | grep foxpost | grep -cv " /admin/"   # → 0
+#   (nem alapértelmezett admin-útvonal esetén a saját prefixedre szűrj)
 
 # 2. A plugin migrációs névtere regisztrált
 bin/console debug:config doctrine_migrations | grep SyliusFoxPostPlugin

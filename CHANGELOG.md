@@ -8,6 +8,41 @@ kompatibilisek.
 
 ## [Nem kiadott]
 
+## [0.1.2] – 2026-10-10
+
+Javító kiadás: a hat admin művelet-route a befogadó bolt admin-útvonalát
+követi. A nyilvános API — a host-szerződés interfészei és traitjei, a
+szolgáltatások, a route-NEVEK — változatlan.
+
+### Javítva
+
+- **A hat admin művelet-route bedrótozott `/admin` előtaggal képződött**
+  (#209), miközben a csomaglista resource-route-ja a konfigurálható
+  `/%sylius_admin.path_name%` prefixet használta. Egy olyan boltban, ami a
+  `SYLIUS_ADMIN_ROUTING_PATH_NAME`-et nem az alapértelmezésen hagyja, a
+  feladás, a sztornó, az átadás és a két címke-letöltés az admin tűzfalon
+  KÍVÜL maradt: a bolt `access_control`-szabálya a
+  `%sylius.security.admin_regex%`-re (`^/%sylius_admin.path_name%`) van kötve,
+  tehát ezekre a route-okra nem illeszkedett a
+  `ROLE_ADMINISTRATION_ACCESS` követelmény. Az előtag mostantól mindkét
+  importon ugyanaz a paraméter; a route-nevek és az alapértelmezett
+  admin-útvonalon az útvonalak sem változnak. Hordozhatósági hiba: a
+  default admin-útvonalú boltokat (így az eddigi egyetlen befogadót) nem
+  érintette.
+
+### Hozzáadva
+
+- **A route-előtag szerződése mérve** (#209):
+  `tests/Unit/Admin/AdminRoutePrefixTest` a hét route útvonalát KÉT
+  admin-útvonalon állítja (`admin` és egy nem alapértelmezett), őrzi a
+  route-készletet és a HTTP-metódusokat, elsül egy új controller
+  bedrótozott `/admin`-ján, és azt is kimondja, miért pont ez a paraméter:
+  a Sylius admin tűzfal-regexe is ebből képződik. A `tests/Support/PluginRoutes`
+  ezzel a valódi betöltő-láncra került (Symfony `YamlFileLoader` → Sylius
+  `ResourceLoader` + FrameworkBundle `AttributeRouteControllerLoader`, a
+  `%...%` feloldása a FrameworkBundle `Router`-ében), tehát az útvonalak
+  byte-azonosak a bolt `debug:router`-ének kimenetével. 280 → 291 teszt.
+
 ## [0.1.1] – 2026-10-10
 
 Javító kiadás: az admin réteg tesztfedezete (#198) és a mérés során talált
@@ -99,9 +134,11 @@ csomagba került, a protokoll-réteg a
   extension a `foxpostSameAsBilling`/`foxpostAddress` mezőkkel a #99 után
   kerül át (#199).
 - **Az admin réteg tesztfedezete hiányos**: a grid, a két controller és a hét
-  route nincs lefedve (#198). *(A `0.1.0` óta megoldva — l. a Nem kiadott
-  szakaszt.)*
+  route nincs lefedve (#198). *(Megoldva a `0.1.1`-ben.)*
+- **A hat művelet-route nem a bolt admin-útvonalát követi** (#209).
+  *(Megoldva a `0.1.2`-ben.)*
 
-[Nem kiadott]: https://github.com/connorhu/foxpost-sylius-plugin/compare/0.1.1...main
+[Nem kiadott]: https://github.com/connorhu/foxpost-sylius-plugin/compare/0.1.2...main
+[0.1.2]: https://github.com/connorhu/foxpost-sylius-plugin/compare/0.1.1...0.1.2
 [0.1.1]: https://github.com/connorhu/foxpost-sylius-plugin/compare/0.1.0...0.1.1
 [0.1.0]: https://github.com/connorhu/foxpost-sylius-plugin/releases/tag/0.1.0
