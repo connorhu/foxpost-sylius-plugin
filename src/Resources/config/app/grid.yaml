@@ -24,20 +24,20 @@ sylius_grid:
             fields:
                 orderNumber:
                     type: string
-                    label: app.ui.foxpost.order_number
+                    label: codeconjure.foxpost.ui.order_number
                     sortable: ~
                 barcode:
                     type: string
-                    label: app.ui.foxpost.barcode
+                    label: codeconjure.foxpost.ui.barcode
                     sortable: ~
                 deliveryKind:
                     type: twig
-                    label: app.ui.foxpost.delivery_kind
+                    label: codeconjure.foxpost.ui.delivery_kind
                     options:
                         template: '@CodeConjureSyliusFoxPostPlugin/admin/parcel/_grid_delivery_kind.html.twig'
                 internalStatus:
                     type: string
-                    label: app.ui.foxpost.status
+                    label: codeconjure.foxpost.ui.status
                     sortable: ~
                 createdAt:
                     type: datetime
@@ -45,60 +45,60 @@ sylius_grid:
                     sortable: ~
                 labelGeneratedAt:
                     type: datetime
-                    label: app.ui.foxpost.label_generated_at
+                    label: codeconjure.foxpost.ui.label_generated_at
                     sortable: ~
             filters:
                 orderNumber:
                     type: string
-                    label: app.ui.foxpost.order_number
+                    label: codeconjure.foxpost.ui.order_number
                     options:
                         fields: [orderNumber]
                 barcode:
                     type: string
-                    label: app.ui.foxpost.barcode
+                    label: codeconjure.foxpost.ui.barcode
                     options:
                         fields: [barcode]
                 internalStatus:
                     type: select
-                    label: app.ui.foxpost.status
+                    label: codeconjure.foxpost.ui.status
                     form_options:
                         multiple: true
                         choices:
-                            app.ui.foxpost.status.eligible: eligible
-                            app.ui.foxpost.status.validation_failed: validation_failed
-                            app.ui.foxpost.status.registration_failed: registration_failed
-                            app.ui.foxpost.status.registered: registered
-                            app.ui.foxpost.status.label_ready: label_ready
-                            app.ui.foxpost.status.packed: packed
-                            app.ui.foxpost.status.handed_over: handed_over
-                            app.ui.foxpost.status.in_transit: in_transit
-                            app.ui.foxpost.status.delivered: delivered
-                            app.ui.foxpost.status.cancelled: cancelled
+                            codeconjure.foxpost.ui.status.eligible: eligible
+                            codeconjure.foxpost.ui.status.validation_failed: validation_failed
+                            codeconjure.foxpost.ui.status.registration_failed: registration_failed
+                            codeconjure.foxpost.ui.status.registered: registered
+                            codeconjure.foxpost.ui.status.label_ready: label_ready
+                            codeconjure.foxpost.ui.status.packed: packed
+                            codeconjure.foxpost.ui.status.handed_over: handed_over
+                            codeconjure.foxpost.ui.status.in_transit: in_transit
+                            codeconjure.foxpost.ui.status.delivered: delivered
+                            codeconjure.foxpost.ui.status.cancelled: cancelled
             actions:
                 item:
                     register:
                         type: links
-                        label: app.ui.foxpost.register
+                        label: codeconjure.foxpost.ui.register
                         options:
                             template: '@CodeConjureSyliusFoxPostPlugin/admin/parcel/_grid_register_action.html.twig'
                     label:
                         type: links
-                        label: app.ui.foxpost.label
+                        label: codeconjure.foxpost.ui.label
                         options:
                             template: '@CodeConjureSyliusFoxPostPlugin/admin/parcel/_grid_label_action.html.twig'
                     cancel:
                         type: links
-                        label: app.ui.foxpost.cancel
+                        label: codeconjure.foxpost.ui.cancel
                         options:
                             template: '@CodeConjureSyliusFoxPostPlugin/admin/parcel/_grid_cancel_action.html.twig'
                 bulk:
                     register:
                         type: links
-                        label: app.ui.foxpost.bulk_register
+                        label: codeconjure.foxpost.ui.bulk_register
                         options:
                             template: '@CodeConjureSyliusFoxPostPlugin/admin/parcel/_grid_bulk_register_action.html.twig'
                     label:
                         type: links
-                        label: app.ui.foxpost.bulk_label
+                        label: codeconjure.foxpost.ui.bulk_label
                         options:
                             template: '@CodeConjureSyliusFoxPostPlugin/admin/parcel/_grid_bulk_label_action.html.twig'

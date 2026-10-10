@@ -35,7 +35,7 @@
 
     {# Cím mezők (látható, ha a checkbox nincs bepipálva) #}
     <div data-foxpost-shipping-target="addressFields" hidden>
-        <h5 class="mb-3">{{ 'app.checkout.foxpost_home_delivery.address_title'|trans }}</h5>
+        <h5 class="mb-3">{{ 'codeconjure.foxpost.checkout.home_delivery.address_title'|trans }}</h5>
         {{ form_row(form.foxpostAddress.lastName) }}
         {{ form_row(form.foxpostAddress.firstName) }}
         {{ form_row(form.foxpostAddress.countryCode) }}
@@ -56,7 +56,7 @@
     hidden
     class="my-3 p-3 border rounded"
 >
-    <h5 class="mb-3">{{ 'app.checkout.foxpost_parcel_locker.title'|trans }}</h5>
+    <h5 class="mb-3">{{ 'codeconjure.foxpost.checkout.parcel_locker.title'|trans }}</h5>
     <div id="foxpost-widget-container" class="mb-3"></div>
     {{ form_row(form.pickupPointId) }}
     {{ form_row(form.phoneNumber) }}

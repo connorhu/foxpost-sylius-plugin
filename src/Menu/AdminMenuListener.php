@@ -20,7 +20,7 @@ final class AdminMenuListener
         }
 
         $sales->addChild('foxpost_parcels', ['route' => 'app_admin_foxpost_parcel_index'])
-            ->setLabel('app.ui.foxpost.parcels')
+            ->setLabel('codeconjure.foxpost.ui.parcels')
             ->setLabelAttribute('icon', 'tabler:package')
             ->setExtra('routes', [['pattern' => '/^app_admin_foxpost_/']]);
 
