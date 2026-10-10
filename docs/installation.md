@@ -278,7 +278,7 @@ migrációi a Sylius mag migrációi után futnak. Egy **üres** Sylius bolt teh
 ehhez nem ír konfigurációt.
 
 Egy olyan bolt viszont, aminek a **saját** migrációi már létrehozták a
-`foxpost_parcel` táblát és a három trait-oszlopot (ilyen minden bolt, ami a
+`foxpost_parcel` táblát és a plugin oszlopait (ilyen minden bolt, ami a
 plugin előtt saját FoxPost-kódot futtatott), a plugin migrációit a sajátjai
 **után** kell sorolnia:
 

@@ -66,9 +66,9 @@ final class EligibilityChecker
         // kötve: a két szabály független egymástól.
         $method = $shipment->getMethod();
         if (
-            $method instanceof FoxPostShippingMethodInterface
-            && $method->requiresRecipientPhone()
-            && empty($shipment->getPhoneNumber())
+            $method instanceof FoxPostShippingMethodInterface &&
+            $method->requiresRecipientPhone() &&
+            empty($shipment->getPhoneNumber())
         ) {
             $errors[] = [
                 'code' => 'missing_phone',

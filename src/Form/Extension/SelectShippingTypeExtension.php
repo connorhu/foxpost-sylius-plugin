@@ -44,8 +44,8 @@ class SelectShippingTypeExtension extends AbstractTypeExtension
 
                     // Az átvételi pont kötelezősége KÜLÖN szabály — ma
                     // véletlenül esik egybe a telefonéval.
-                    if ($method instanceof FoxPostShippingMethodInterface
-                        && DeliveryKind::tryFrom($method->getDeliveryKindSlug() ?? '') === DeliveryKind::ParcelLocker) {
+                    if ($method instanceof FoxPostShippingMethodInterface &&
+                        DeliveryKind::tryFrom($method->getDeliveryKindSlug() ?? '') === DeliveryKind::ParcelLocker) {
                         $groups[] = self::FOXPOST_PARCEL_LOCKER_VALIDATION_GROUP;
                     }
                 }
