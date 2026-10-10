@@ -1,17 +1,8 @@
+# See validators.hu.yaml for the structure and provenance notes.
 codeconjure:
     foxpost:
-        address:
+        checkout:
             phone_number:
-                not_blank: 'Phone number is required!'
-            last_name:
-                not_blank: 'Last name is required!'
-            first_name:
-                not_blank: 'First name is required!'
-            postcode:
-                not_blank: 'Postcode is required!'
-            city:
-                not_blank: 'City is required!'
-            street:
-                not_blank: 'Street and house number are required!'
-            country_code:
-                invalid: 'FoxPost only delivers within Hungary!'
+                not_blank: 'Phone number is required.'
+            pickup_point_id:
+                not_blank: 'Please pick a parcel locker.'

@@ -81,6 +81,18 @@
         <!-- Pénztár: a checkout válaszd-ki-a-szállítást form validációs csoportjai -->
         <service id="CodeConjure\SyliusFoxPostPlugin\Form\Extension\SelectShippingTypeExtension"/>
 
+        <!-- Pénztár: a shipment FoxPost-mezői (#199). Az `autoconfigure` itt
+             KI van kapcsolva, és a taget kézzel tesszük fel: az autoconfigure
+             prioritás nélküli `form.type_extension` taget ad, a kettő együtt
+             pedig KÉT taget jelentene ugyanazon a szolgáltatáson, vagyis a
+             kiterjesztés kétszer futna. A prioritás szerepét l. az osztály
+             PHPDoc-jában — ez teszi a két mezőt a host által felülírható
+             alapértelmezéssé. -->
+        <service id="CodeConjure\SyliusFoxPostPlugin\Form\Extension\CheckoutShipmentTypeExtension"
+                 autoconfigure="false">
+            <tag name="form.type_extension" priority="16"/>
+        </service>
+
         <!-- Admin: a szállítási mód foxpostDefaultSize mezője. A deliveryKind
              mező a boltban marad, lásd az osztály PHPDoc-ját. Az autoconfigure
              a getExtendedTypes()-ből automatikusan felteszi a form.type_extension

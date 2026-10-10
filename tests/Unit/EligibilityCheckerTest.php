@@ -9,12 +9,12 @@ use CodeConjure\SyliusFoxPostPlugin\EligibilityChecker;
 use CodeConjure\SyliusFoxPostPlugin\EligibilityResult;
 use CodeConjure\SyliusFoxPostPlugin\Model\FoxPostShipmentInterface;
 use CodeConjure\SyliusFoxPostPlugin\Model\FoxPostShippingMethodInterface;
+use CodeConjure\SyliusFoxPostPlugin\Tests\Support\HostShipment;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\Address;
 use Sylius\Component\Core\Model\Order;
 use Sylius\Component\Core\Model\OrderInterface;
-use Sylius\Component\Core\Model\Shipment;
 use Sylius\Component\Core\Model\ShipmentInterface;
 use Sylius\Component\Core\Model\ShippingMethod;
 use Sylius\Component\Shipping\Model\ShippingMethodInterface;
@@ -413,36 +413,7 @@ final class EligibilityCheckerTest extends TestCase
     ): ShipmentInterface&FoxPostShipmentInterface {
         $order ??= $this->order();
 
-        $shipment = new class($deliveryKindSlug, $pickupPointId, $phoneNumber, $order) extends Shipment implements FoxPostShipmentInterface {
-            public function __construct(
-                private readonly ?string $deliveryKindSlug,
-                private readonly ?string $pickupPoint,
-                private readonly ?string $phone,
-                private readonly ?OrderInterface $orderOverride,
-            ) {
-                parent::__construct();
-            }
-
-            public function getDeliveryKindSlug(): ?string
-            {
-                return $this->deliveryKindSlug;
-            }
-
-            public function getPickupPointId(): ?string
-            {
-                return $this->pickupPoint;
-            }
-
-            public function getPhoneNumber(): ?string
-            {
-                return $this->phone;
-            }
-
-            public function getOrder(): ?OrderInterface
-            {
-                return $this->orderOverride;
-            }
-        };
+        $shipment = new HostShipment($deliveryKindSlug, $pickupPointId, $phoneNumber, $order);
 
         // A telefon-kötelezőséget az EligibilityChecker a MÓD
         // `requiresRecipientPhone()`-jából olvassa (I1 javítás), ezért a

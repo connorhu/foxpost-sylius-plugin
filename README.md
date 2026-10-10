@@ -59,36 +59,41 @@ hookable-hez:
   cím a #99 óta az 1. lépésen dől el, ide már csak a módhoz tartozó két mező
   (telefon, csomagautomata) tartozik, a lenti szerződés szerint.
 
-- `foxpost_fields` — az alábbi két mezőt olvassa (**csak olvassa**, nem ő
-  hozza létre őket). A mezőket a hostnak kell hozzáadnia a shipment
-  formhoz, pontosan ezekkel a nevekkel. A szállítási CÍM nem tartozik ide —
-  az a #99 óta az 1. lépésen dől el, a Sylius saját
-  `differentShippingAddress` kapcsolójával:
+- `foxpost_fields` — a shipment form két FoxPost-mezőjét rendeli. **A
+  mezőket a #199 óta a plugin maga adja hozzá** a
+  `Form\Extension\CheckoutShipmentTypeExtension`-ben: egy üres Sylius
+  boltban a plugin telepítése után a pénztár szállítási lépésén megjelenik a
+  csomagautomata-választó és a címzett-telefon mező, **host-oldali form
+  extension nélkül**. A szállítási CÍM nem tartozik ide — az a #99 óta az 1.
+  lépésen dől el, a Sylius saját `differentShippingAddress` kapcsolójával.
 
-| Mező | Típus | Mire kell |
+| Mező | A plugin alapértelmezése | Mire kell |
 |---|---|---|
-| `phoneNumber` | szöveg | Címzett telefonszáma — a láthatóságát a Stimulus controller a választott mód `data-requires-recipient-phone` attribútuma szerint kapcsolja, a kötelezőségét a `recipient_phone_required` validációs csoport adja |
-| `pickupPointId` | hidden/szöveg | FoxPost csomagautomata: a kiválasztott automata azonosítója |
+| `phoneNumber` | `TelType` + `NotBlank` a `recipient_phone_required` csoportra | Címzett telefonszáma — a láthatóságát a Stimulus controller a választott mód `data-requires-recipient-phone` attribútuma szerint kapcsolja |
+| `pickupPointId` | `FoxPostPickupPointSelectType` (a plugin saját típusa) + `NotBlank` a `foxpost_parcel_locker` csoportra | FoxPost csomagautomata: a kiválasztott automata azonosítója |
 
-**Ha egy mező hiányzik a formról, a hozzá tartozó panel a sablonban némán
-kimarad — nem hibázik.** A két panel (telefon, illetve csomagautomata)
-egymástól függetlenül ellenőrzi a saját mezőjét (`is defined`), és csak
-akkor renderel, ha az jelen van. Ez azért fontos, mert egy `FormView` nem
-létező gyerekmezőjének közvetlen elérése (`form.valami`) Twig
-`RuntimeError`-t dob `strict_variables` mellett — ez bármelyik olyan
-boltot render-hibával állítaná le a pénztár szállítási lépésén, amelyik
-telepíti a plugint, de nem replikálja pontosan ezt a két mezőt.
+### A két mező ALAPÉRTELMEZÉS, nem szerződés
 
-**A bolt — a jelen (`codeconjure/egyhazzene-hu-bolt`) — ma ezt a négy mezőt
-a saját `App\Form\Extensions\CheckoutShipmentTypeExtension`-je adja hozzá.**
-Ez egy ismert, átmeneti állapot: a mezőkészlet a bolt saját cím- és
-telefonszám-infrastruktúrájára épül (host-specifikus `Address` entitás,
-telefonszám-validátor), amihez a plugin nem ad hidat, és amit egy másik,
-nyitott issue (#99) úgyis átír (a szállítási cím a jövőben a mentett
-címjegyzékből fog jönni, nem szabad szövegből). Egy másik Sylius bolt, ami
-a plugint telepíti, de nem adja hozzá ezt a négy mezőt, egyszerűen nem
-látja a FoxPost-mezőket a pénztárban — a checkout egyébként hibátlanul
-működik.
+Mindkét mező felülírható: írj a boltban egy sima form kiterjesztést a
+`Sylius\Bundle\CoreBundle\Form\Type\Checkout\ShipmentType`-ra, és add
+hozzá újra a mezőt a magadéval. A plugin kiterjesztése **magas prioritással**
+(`CheckoutShipmentTypeExtension::PRIORITY`) fut, a te 0 prioritású
+kiterjesztésed pedig utána — a `ResolvedFormType::buildForm()` ebben a
+sorrendben hívja őket, tehát a tiéd nyer. Nem kell hozzá semmilyen
+plugin-oldali konfigurációs felület.
+
+A referencia-bolt pontosan ezt teszi a telefonmezővel: a `pickupPointId`-t a
+pluginból kapja, a `phoneNumber`-t viszont a saját, magyar mobilszámra
+szűkített validátorával írja felül. A telefonszám-validálás szándékosan nem
+a plugin dolga: az országonként más, és a hozzá tartozó komponens
+kiszervezése külön kérdés.
+
+**Ha egy mező mégis hiányzik a formról** (mert a host felülírta és közben
+elhagyta), a hozzá tartozó panel a sablonban némán kimarad — nem hibázik. A
+két panel egymástól függetlenül ellenőrzi a saját mezőjét (`is defined`).
+Ez azért fontos, mert egy `FormView` nem létező gyerekmezőjének közvetlen
+elérése (`form.valami`) Twig `RuntimeError`-t dob `strict_variables`
+mellett, ami a pénztár szállítási lépését állítaná le.
 
 ## Az admin szállítási panel — host-szerződés a feladás-gombról
 

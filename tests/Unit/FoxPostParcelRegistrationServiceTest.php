@@ -13,6 +13,7 @@ use CodeConjure\SyliusFoxPostPlugin\FoxPostParcelPayloadFactory;
 use CodeConjure\SyliusFoxPostPlugin\FoxPostParcelRegistrationService;
 use CodeConjure\SyliusFoxPostPlugin\Model\FoxPostShipmentInterface;
 use CodeConjure\SyliusFoxPostPlugin\Repository\FoxpostParcelRepository;
+use CodeConjure\SyliusFoxPostPlugin\Tests\Support\HostShipment;
 use Doctrine\ORM\EntityManagerInterface;
 use Http\Mock\Client as MockClient;
 use Nyholm\Psr7\Factory\Psr17Factory;
@@ -20,7 +21,6 @@ use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\Address;
 use Sylius\Component\Core\Model\Order;
 use Sylius\Component\Core\Model\OrderInterface;
-use Sylius\Component\Core\Model\Shipment;
 use Sylius\Component\Core\Model\ShipmentInterface;
 use Symfony\Component\Workflow\DefinitionBuilder;
 use Symfony\Component\Workflow\MarkingStore\MethodMarkingStore;
@@ -159,33 +159,6 @@ final class FoxPostParcelRegistrationServiceTest extends TestCase
         OrderInterface $order,
         ?string $phoneNumber,
     ): ShipmentInterface&FoxPostShipmentInterface {
-        return new class($order, $phoneNumber) extends Shipment implements FoxPostShipmentInterface {
-            public function __construct(
-                private readonly OrderInterface $orderOverride,
-                private readonly ?string $phone,
-            ) {
-                parent::__construct();
-            }
-
-            public function getDeliveryKindSlug(): string
-            {
-                return DeliveryKind::HomeDelivery->value;
-            }
-
-            public function getPickupPointId(): ?string
-            {
-                return null;
-            }
-
-            public function getPhoneNumber(): ?string
-            {
-                return $this->phone;
-            }
-
-            public function getOrder(): OrderInterface
-            {
-                return $this->orderOverride;
-            }
-        };
+        return new HostShipment(DeliveryKind::HomeDelivery->value, null, $phoneNumber, $order);
     }
 }
