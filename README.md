@@ -8,6 +8,18 @@ FoxPost szállítási integráció Syliushoz: csomagfeladás, címke, nyomkövet
 composer require codeconjure/foxpost-sylius-plugin
 ```
 
+Ez **önmagában nem elég**: a plugin mögött nincs Flex recipe, ezért a befogadó
+boltban kilenc helyen kell konfigurációt hozzátenni — bundle-regisztráció,
+route-import, Stimulus controllerek, `.env`, két hook-felülírás, a checkout
+két mezője, és (opcionálisan) a városkereső route.
+
+**A teljes lista hibamódokkal és másolható blokkokkal:
+[`docs/installation.md`](docs/installation.md).**
+
+A két „host-szerződés" szakasz lentebb ugyanezeknek a lépéseknek a
+részletezése (a pénztár-hook és a checkout mezői: 5. és 7. lépés; az admin
+feladás-panel: 6. lépés); a telepítési dokumentum visszautal rájuk.
+
 ## A pénztár felülete — host-szerződés a checkout mezőkről
 
 **A hostnak saját magának kell felülregisztrálnia a `shipment` hookable-t.**
