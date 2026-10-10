@@ -1,5 +1,7 @@
 # FoxPost Sylius Plugin
 
+[![CI](https://github.com/connorhu/foxpost-sylius-plugin/actions/workflows/ci.yaml/badge.svg)](https://github.com/connorhu/foxpost-sylius-plugin/actions/workflows/ci.yaml)
+
 FoxPost szállítási integráció Syliushoz: csomagfeladás, címke, nyomkövetés.
 
 ## Installation
@@ -126,6 +128,45 @@ a plugin a `sylius_shop.shared.order.show.summary.addresses.shipping.pickup_poin
 hookra ülteti, amit a Sylius nem foglal — a hostnak csak annyi a dolga, hogy a
 szállítási blokkjában meghívja (`{% hook 'pickup_point' with { shipment: shipment } %}`),
 szolgáltatónév nélkül.
+
+## Fejlesztés
+
+```bash
+composer update
+vendor/bin/phpunit
+vendor/bin/phpstan analyse -c phpstan.dist.neon
+vendor/bin/ecs check
+```
+
+Ugyanezt a négy kaput futtatja a CI is, két Sylius-soron (`~2.1.0` és `~2.2.0`)
+és két PHP-verzión — lásd [`.github/workflows/ci.yaml`](.github/workflows/ci.yaml).
+A `~2.3.0`-s sor szándékosan nincs benne: ott a plugin ma nem fordul
+(Symfony 8 `XmlFileLoader`, DBAL 4 `Type::getName()`), ez külön döntés.
+
+### A magcsomag élő összekötése
+
+A `codeconjure/foxpost` a Packagistról, `dev-main`-en települ. A repó
+gyökerében **nincs `path` repository**, és ez szándékos: attól egy olyan
+klónban, ami mellett nem áll ott a `../foxpost` könyvtár, a `composer update`
+el sem indul —
+
+```
+The `url` supplied for the path (../foxpost) repository does not exist
+```
+
+—, tehát a CI és minden külső közreműködő azonnal elakadna. Ha a magcsomagon
+és a pluginon együtt dolgozol, a linket helyileg kell felvenni, és **nem
+commitolni**:
+
+```bash
+composer config repositories.foxpost path ../foxpost
+composer update codeconjure/foxpost
+# ha végeztél:
+composer config --unset repositories.foxpost
+```
+
+A visszavételt a `tests/Unit/ContinuousIntegrationContractTest.php` is őrzi:
+ha egy `path` repository bekerül a commitolt manifestbe, a teszt pirosra vált.
 
 ## License
 
