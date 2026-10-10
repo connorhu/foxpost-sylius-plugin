@@ -6,6 +6,7 @@ namespace CodeConjure\SyliusFoxPostPlugin\Tests\Unit;
 
 use CodeConjure\SyliusFoxPostPlugin\FoxPostParcelPayloadFactory;
 use CodeConjure\SyliusFoxPostPlugin\Model\FoxPostShipmentInterface;
+use CodeConjure\SyliusFoxPostPlugin\Tests\Support\FoxPostShipment;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\Address;
 use Sylius\Component\Core\Model\CustomerInterface;
@@ -58,19 +59,18 @@ final class FoxPostParcelPayloadFactoryTest extends TestCase
         $order->method('getCustomer')->willReturn($customer);
         $order->method('getNumber')->willReturn('000001');
 
-        // INTERSECTION TÍPUS: a factory szignatúrája
-        // `ShipmentInterface&FoxPostShipmentInterface` — a `getOrder()` a
-        // Syliusé, a plugin interfésze nem deklarálja. Egyetlen interfészre
-        // készített stub itt TypeError-t adna a híváskor.
-        $shipment = $this->createStubForIntersectionOfInterfaces([
-            ShipmentInterface::class,
-            FoxPostShipmentInterface::class,
-        ]);
-        $shipment->method('getOrder')->willReturn($order);
-        $shipment->method('getDeliveryKindSlug')->willReturn($deliveryKindSlug);
-        $shipment->method('getPhoneNumber')->willReturn($phone);
-
-        return $shipment;
+        // A factory szignatúrája metszet-típus
+        // (`ShipmentInterface&FoxPostShipmentInterface`): a `getOrder()` a
+        // Syliusé, a plugin interfésze nem deklarálja. A HOST szállítmánya
+        // pontosan ez a metszet, ezért azt használjuk — egy
+        // `createStubForIntersectionOfInterfaces()` futásidőben jó, de a
+        // visszatérési típusa `Stub`, amit a PHPStan nem fogad el
+        // metszet-típusként.
+        return new FoxPostShipment(
+            deliveryKindSlug: $deliveryKindSlug,
+            phoneNumber: $phone,
+            order: $order,
+        );
     }
 
     public function testHomeDeliveryUsesTheShippingAddress(): void

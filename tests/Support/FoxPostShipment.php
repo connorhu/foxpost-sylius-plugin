@@ -6,13 +6,13 @@ namespace CodeConjure\SyliusFoxPostPlugin\Tests\Support;
 
 use CodeConjure\FoxPost\DeliveryKind;
 use CodeConjure\SyliusFoxPostPlugin\Model\FoxPostShipmentInterface;
-use CodeConjure\SyliusFoxPostPlugin\Model\FoxPostShipmentTrait;
 use Sylius\Component\Core\Model\Address;
 use Sylius\Component\Core\Model\Customer;
 use Sylius\Component\Core\Model\Order;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\Shipment;
 use Sylius\Component\Core\OrderPaymentStates;
+use Sylius\Component\Shipping\Model\ShippingMethodInterface;
 
 /**
  * Egy szállítmány, amilyet a befogadó bolt ad: a Sylius `Shipment`-je PLUSZ a
@@ -22,11 +22,15 @@ use Sylius\Component\Core\OrderPaymentStates;
  * épül bele (l. `docs/installation.md`). Ez az osztály ezért nem dublőr,
  * hanem a HOST oldalának a helyettese a tesztekben: ugyanazokat a
  * metódusokat adja, amiket egy bekötött bolt `Shipment`-je.
+ *
+ * A `FoxPostShipmentTrait` használata a #99-ben szűnt meg: a trait egyetlen
+ * tartalma a `foxpostSameAsBilling` oszlop volt, és a szállítási cím azóta a
+ * pénztár 1. lépésén dől el, a Sylius saját `differentShippingAddress`
+ * kapcsolójával. A két mód-szintű mező (`pickupPointId`, `phoneNumber`)
+ * sosem volt a traitben: azok tárolása a hosté (#116 3.10).
  */
 final class FoxPostShipment extends Shipment implements FoxPostShipmentInterface
 {
-    use FoxPostShipmentTrait;
-
     private OrderInterface $foxpostOrder;
 
     public function __construct(
@@ -35,11 +39,17 @@ final class FoxPostShipment extends Shipment implements FoxPostShipmentInterface
         private readonly ?string $phoneNumber = '+36301234567',
         ?OrderInterface $order = null,
         int $id = ParcelFixture::SHIPMENT_ID,
+        ?ShippingMethodInterface $method = null,
     ) {
         parent::__construct();
 
         $this->foxpostOrder = $order ?? self::order();
         (new \ReflectionClass(Shipment::class))->getProperty('id')->setValue($this, $id);
+
+        // A telefon kötelezőségét a #99 óta a MÓD flagje dönti el, nem a
+        // delivery kind — mód nélkül tehát az `EligibilityChecker` sosem
+        // jelezne hiányzó telefont, és a tesztek a mért ágat kerülnék el.
+        $this->setMethod($method ?? new FoxPostShippingMethod());
     }
 
     public function getDeliveryKindSlug(): ?string
@@ -82,7 +92,12 @@ final class FoxPostShipment extends Shipment implements FoxPostShipmentInterface
 
         $order = new Order();
         $order->setNumber($number);
-        $order->setBillingAddress($address);
+        // A cím a #99 óta MINDIG a szállítási cím — abból építi a payloadot a
+        // `FoxPostParcelPayloadFactory` és azt ellenőrzi az
+        // `EligibilityChecker` is. A számlázási cím a valós rendelésen is
+        // kitöltött, de FoxPost-oldalon nincs szerepe.
+        $order->setShippingAddress($address);
+        $order->setBillingAddress(clone $address);
         $order->setCustomer($customer);
         // Az `EligibilityChecker` kifizetett rendelést kér — enélkül minden
         // feladás `order_not_paid`-en bukik, és a teszt nem a mért ágat járná.
