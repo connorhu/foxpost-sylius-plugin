@@ -8,6 +8,12 @@ kompatibilisek.
 
 ## [Nem kiadott]
 
+## [0.1.1] – 2026-10-10
+
+Javító kiadás: az admin réteg tesztfedezete (#198) és a mérés során talált
+négy néma hiba javítása. A nyilvános API — a host-szerződés interfészei és
+traitjei, a szolgáltatások — változatlan.
+
 ### Javítva
 
 - **Az admin csomaglista az első valódi csomagsoron 500-as hibára futott**
@@ -96,5 +102,6 @@ csomagba került, a protokoll-réteg a
   route nincs lefedve (#198). *(A `0.1.0` óta megoldva — l. a Nem kiadott
   szakaszt.)*
 
-[Nem kiadott]: https://github.com/connorhu/foxpost-sylius-plugin/compare/0.1.0...main
+[Nem kiadott]: https://github.com/connorhu/foxpost-sylius-plugin/compare/0.1.1...main
+[0.1.1]: https://github.com/connorhu/foxpost-sylius-plugin/compare/0.1.0...0.1.1
 [0.1.0]: https://github.com/connorhu/foxpost-sylius-plugin/releases/tag/0.1.0
