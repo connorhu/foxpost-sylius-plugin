@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace CodeConjure\SyliusFoxPostPlugin\DependencyInjection;
 
+use Sylius\Bundle\CoreBundle\DependencyInjection\PrependDoctrineMigrationsTrait;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
@@ -13,6 +14,8 @@ use Symfony\Component\Yaml\Yaml;
 
 final class CodeConjureSyliusFoxPostExtension extends Extension implements PrependExtensionInterface
 {
+    use PrependDoctrineMigrationsTrait;
+
     /**
      * A plugin öt saját YAML-ja más-más extension gyökérkulcsával kezdődik
      * (framework, sylius_resource, sylius_grid, twig, sylius_twig_hooks) —
@@ -59,5 +62,42 @@ final class CodeConjureSyliusFoxPostExtension extends Extension implements Prepe
 
             $container->prependExtensionConfig($extensionAlias, $typedExtensionConfig);
         }
+
+        // A plugin HÁROM migrációja (foxpost_parcel tábla + a három
+        // trait-oszlop) a #194 óta a plugin saját prepend()-jéből kerül a
+        // doctrine_migrations `migrations_paths`-ába — a befogadó boltnak
+        // nem kell a saját config/packages/doctrine_migrations.yaml-jában
+        // felvennie. A trait a Sylius sajátja
+        // (Sylius\Bundle\CoreBundle\DependencyInjection), ugyanaz, amit a
+        // sylius/paypal-plugin is használ; a host `migrations_paths`-át
+        // beolvassa és MELLÉ teszi a sajátját, tehát nem írja felül.
+        $this->prependDoctrineMigrations($container);
+    }
+
+    protected function getMigrationsNamespace(): string
+    {
+        return 'CodeConjure\\SyliusFoxPostPlugin\\Migrations';
+    }
+
+    protected function getMigrationsDirectory(): string
+    {
+        return '@CodeConjureSyliusFoxPostPlugin/src/Migrations';
+    }
+
+    /**
+     * A plugin migrációi a Sylius mag migrációi UTÁN futnak: az egyik
+     * `ALTER TABLE sylius_shipment`-et ad ki, tehát a magtábláknak már
+     * állnia kell.
+     *
+     * Ennél többet a plugin nem tudhat. Egy olyan bolt, aminek a SAJÁT
+     * migrációi már létrehozták a FoxPost-táblát és -oszlopokat (ilyen a
+     * kiszervezés előtti egyhazzene.hu bolt), ezen felül a saját migrációs
+     * névterét is fel kell vennie a lista elé — l. docs/installation.md.
+     *
+     * @return list<string>
+     */
+    protected function getNamespacesOfMigrationsExecutedBefore(): array
+    {
+        return ['Sylius\\Bundle\\CoreBundle\\Migrations'];
     }
 }
