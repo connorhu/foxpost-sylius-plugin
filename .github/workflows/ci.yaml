@@ -1,0 +1,66 @@
+name: CI
+
+on:
+    push: ~
+    pull_request: ~
+    workflow_dispatch: ~
+
+permissions:
+    contents: read
+
+jobs:
+    checks:
+        name: "Tesztek és statikus ellenőrzés (PHP ${{ matrix.php }}, Sylius ${{ matrix.sylius }})"
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                # A `sylius/sylius: ^2.1` constraint a 2.1-től a 2.3-ig mindent
+                # megenged, a feloldás viszont nem mindegy: a 2.3-as sor Symfony
+                # 8-at és DBAL 4-et húz, ahol a plugin MÉRVE nem működik (az
+                # `XmlFileLoader` és a `Type::getName()` is kivezetett) — ez a
+                # #205. Amíg az a döntés nincs meg, a CI azt a két sort méri,
+                # amin a csomag valóban támogatott: a 2.1-es alsó határt és a
+                # 2.2-est, amin a befogadó bolt ma áll.
+                include:
+                    - php: '8.4'
+                      sylius: '~2.1.0'
+                    - php: '8.4'
+                      sylius: '~2.2.0'
+                    - php: '8.5'
+                      sylius: '~2.2.0'
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: shivammathur/setup-php@v2
+              with:
+                  php-version: ${{ matrix.php }}
+                  coverage: none
+
+            # A vendor előtt fut: a manifest érvényessége nem igényel telepítést,
+            # és ha a composer.json hibás, ezt akarjuk látni, nem egy feloldási hibát.
+            - name: A composer.json érvényessége
+              run: composer validate --strict
+
+            # `dependency-versions: highest` → `composer update`, ami a `--with`
+            # constraintet elfogadja (a `composer install` nem). A `codeconjure/foxpost`
+            # magcsomag a Packagistról, `dev-main`-en jön: a repó gyökerében
+            # SZÁNDÉKOSAN nincs `path` repository, mert attól egy szomszédos
+            # `../foxpost` nélküli klónban a `composer update` el sem indul
+            # ("The `url` supplied for the path (../foxpost) repository does not exist").
+            - uses: ramsey/composer-install@v3
+              with:
+                  dependency-versions: highest
+                  composer-options: "--with sylius/sylius:${{ matrix.sylius }}"
+
+            - name: A feloldott kulcsverziók
+              run: composer show --no-ansi | grep -E '^(codeconjure/foxpost|sylius/sylius|doctrine/dbal|symfony/dependency-injection) '
+
+            - name: Unit tesztek
+              run: vendor/bin/phpunit
+
+            - name: PHPStan
+              run: vendor/bin/phpstan analyse -c phpstan.dist.neon --no-progress
+
+            - name: ECS
+              run: vendor/bin/ecs check --no-progress-bar
