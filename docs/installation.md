@@ -106,6 +106,12 @@ Amit ez az egy import ad:
 | `app_admin_foxpost_label_download_single` | GET |
 | `app_admin_foxpost_label_download_bulk` | POST |
 
+> A `bulk_register` route-hoz **ma nincs grid-akció**: a Sylius tömeges
+> kijelölése a sorok (csomagok) azonosítóit küldi, ez a route viszont
+> szállítmány-azonosítókat vár. A route létezik, és egy saját felületről
+> hívható — a csomaglista gombja a paraméter-szerződés eldöntése után kerül
+> vissza.
+
 ## 3. Stimulus controllerek
 
 **Ezzel a lépéssel nincs dolgod** — a Symfony Flex írja be, a

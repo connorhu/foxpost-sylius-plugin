@@ -29,6 +29,12 @@
 # FORDÍTÁS NÉLKÜLI, bedrótozott magyar szöveg volt:
 #   - ui.register_parcel    (az admin szállítási panel feladás-gombja)
 #   - pickup_point.title    (a rendelés-összegző automata-sora)
+#
+# A #198-ban három `ui.status.*` kulcs jött: a `FoxpostParcelStatus` 13 esete
+# közül a `pending_registration`, a `delivery_failed` és a `returned` fordítás
+# NÉLKÜL volt (a boltból így került át). A grid státusz-mezője a #198 óta
+# fordítási kulcson át jelenít meg, tehát egy hiányzó kulcs a nyers enum-érték
+# kiírását jelentené — az őr a tests/Unit/Admin/ParcelGridFieldRenderTest.php.
 codeconjure:
     foxpost:
         delivery_kind:
@@ -63,6 +69,7 @@ codeconjure:
             status: Állapot
             status.eligible: Feladható
             status.validation_failed: Validáció sikertelen
+            status.pending_registration: Feladás folyamatban
             status.registration_failed: Feladás sikertelen
             status.registered: Feladva
             status.label_ready: Címke kész
@@ -70,11 +77,14 @@ codeconjure:
             status.handed_over: Átadva
             status.in_transit: Szállítás alatt
             status.delivered: Kézbesítve
+            status.delivery_failed: Kézbesítés sikertelen
             status.cancelled: Törölve
+            status.returned: Visszaküldve
             label_generated_at: Címke generálva
             register: Feladás
             label: Címke
             cancel: Mégse
+            cancel_confirm: Biztosan törli a FoxPost csomagot?
             bulk_register: Tömeges feladás
             bulk_label: Tömeges címke
             register_parcel: Foxpost Csomag regisztráció

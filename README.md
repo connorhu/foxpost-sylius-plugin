@@ -147,6 +147,22 @@ vendor/bin/phpstan analyse -c phpstan.dist.neon
 vendor/bin/ecs check
 ```
 
+### A tesztek teszt-kernel nélkül futnak
+
+A csomag **nem szállít Sylius teszt-alkalmazást**, és nem is kell neki: az
+admin réteg (grid, akció-sablonok, a két controller, a menü listener) a Sylius
+VALÓDI renderelőivel, a plugin valódi route-gyűjteményével és fordítási
+katalógusával mérhető — `tests/Support/` alatt van az a néhány osztály, ami
+ezeket összerakja (`PluginRoutes`, `AdminTwig`, `ParcelGrid`,
+`AdminControllerHarness`, `ParcelWorkflow`). A FoxPost API helyén PSR-18 mock
+HTTP kliens áll, tehát a hibaágak is a valódi kivételekből jönnek.
+
+Amit ez a megközelítés szerkezetileg nem lát, az a HOST oldali huzalozás (hogy
+a bolt tényleg importálja a route-okat, betölti a fordításokat, és beépítette
+a traiteket) — azt a befogadó bolt méri, l.
+`tests/Functional/FoxPostPluginWiringTest.php` a
+`praemonstratensis/egyhazzene-bolt`-ban.
+
 Ugyanezt a négy kaput futtatja a CI is, két Sylius-soron (`~2.1.0` és `~2.2.0`)
 és két PHP-verzión — lásd [`.github/workflows/ci.yaml`](.github/workflows/ci.yaml).
 A `~2.3.0`-s sor szándékosan nincs benne: ott a plugin ma nem fordul
