@@ -129,6 +129,15 @@ hookra ülteti, amit a Sylius nem foglal — a hostnak csak annyi a dolga, hogy 
 szállítási blokkjában meghívja (`{% hook 'pickup_point' with { shipment: shipment } %}`),
 szolgáltatónév nélkül.
 
+## Verziózás
+
+A csomag [SemVer](https://semver.org/lang/hu/) szerint verziózódik, és tagolt
+kiadásokat ad — a kiadások tartalma a [CHANGELOG.md](CHANGELOG.md)-ben van. A
+`0.x` soron a nyilvános API (a host-szerződés interfészei és traitjei is) még
+mozoghat: `^0.1`-re érdemes constraintet írni, `dev-main`-re nem.
+
+A **támogatott Sylius-sor `~2.1`–`~2.2`** — a `~2.3` ma nem telepíthető (#205).
+
 ## Fejlesztés
 
 ```bash
@@ -145,7 +154,7 @@ A `~2.3.0`-s sor szándékosan nincs benne: ott a plugin ma nem fordul
 
 ### A magcsomag élő összekötése
 
-A `codeconjure/foxpost` a Packagistról, `dev-main`-en települ. A repó
+A `codeconjure/foxpost` a Packagistról, tagolt verzión (`^0.1`) települ. A repó
 gyökerében **nincs `path` repository**, és ez szándékos: attól egy olyan
 klónban, ami mellett nem áll ott a `../foxpost` könyvtár, a `composer update`
 el sem indul —
