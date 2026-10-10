@@ -1,0 +1,13 @@
+{# A kijelölt sorok azonosítóit a Sylius admin generikus tömeges
+   mechanizmusa csatolja `ids[]` inputként — ugyanúgy, ahogy a tömeges
+   címke-letöltésnél (l. `_grid_bulk_label_action.html.twig`). A csoportnév
+   ezért itt is kötött: a Sylius `shared/helper/table.html.twig`-je `index`
+   néven teszi ki a sor-jelölőket, és a `bulk-delete.js` ezeket küldi.
+
+   A küldött azonosítók CSOMAG-azonosítók; a `bulkRegister()` ebből keresi
+   meg a szállítmányt (#208). A megerősítés nem díszítés: a művelet
+   csomagonként egy pénzbe kerülő FoxPost API-hívás. #}
+<form method="post" action="{{ path('app_admin_foxpost_parcel_bulk_register') }}" data-bulk-delete="index">
+    <button type="submit" class="btn btn-warning"
+            onclick="return confirm('{{ 'codeconjure.foxpost.ui.bulk_register_confirm'|trans }}')">{{ action.label|trans }}</button>
+</form>

@@ -115,11 +115,13 @@ előtagot használt, és egy nem alapértelmezett admin-útvonalú boltban kiese
 `ROLE_ADMINISTRATION_ACCESS` szabály (`path: "%sylius.security.admin_regex%"`)
 alól (#209).
 
-> A `bulk_register` route-hoz **ma nincs grid-akció**: a Sylius tömeges
-> kijelölése a sorok (csomagok) azonosítóit küldi, ez a route viszont
-> szállítmány-azonosítókat vár. A route létezik, és egy saját felületről
-> hívható — a csomaglista gombja a paraméter-szerződés eldöntése után kerül
-> vissza.
+> A két `POST` tömeges route (`bulk_register`, `label_download_bulk`)
+> **csomag-azonosítókat** olvas `ids[]`-ben — mindkettő a csomaglista
+> kijelöléséből dolgozik, és a lista sorai csomagok (#208). A feladás maga
+> továbbra is a csomag mögötti szállítmányból építi a payloadot, azt a
+> controller keresi meg. **0.2.0 előtt a `bulk_register` szállítmány-azonosítót
+> várt**: ha a boltod saját felületről hívja ezt a route-ot, a frissítéssel át
+> kell írnia a küldött azonosítókat.
 
 ## 3. Stimulus controllerek
 

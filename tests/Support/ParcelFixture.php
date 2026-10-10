@@ -43,9 +43,14 @@ final class ParcelFixture
         ?string $barcode = self::BARCODE,
         DeliveryKind $deliveryKind = DeliveryKind::ParcelLocker,
         int $id = self::PARCEL_ID,
+        ?ShipmentInterface $shipment = null,
     ): FoxpostParcel {
         $parcel = new FoxpostParcel();
-        $parcel->setShipment(self::shipment());
+        // A szállítmány alapból a Sylius sima `Shipment`-je: a gridnek és az
+        // admin sablonoknak csak az `id`-ja kell. A tömeges feladás tesztje
+        // viszont a HOST szállítmányát adja át (`FoxPostShipment`), mert ott a
+        // csomagsor a feladás BEMENETE, nem csak egy megjelenítendő érték.
+        $parcel->setShipment($shipment ?? self::shipment());
         $parcel->setOrderNumber(self::ORDER_NUMBER);
         $parcel->setDeliveryKind($deliveryKind);
         $parcel->setShippingMethodCode('foxpost_apm');

@@ -8,6 +8,61 @@ kompatibilisek.
 
 ## [Nem kiadott]
 
+## [0.2.0] – 2026-10-10
+
+**Törő változás egyetlen ponton**: a `bulk_register` admin route mostantól
+CSOMAG-azonosítókat olvas `ids[]`-ben, nem szállítmány-azonosítókat. A
+host-szerződés (interfészek, traitek, szolgáltatás-azonosítók, route-nevek és
+útvonalak) változatlan, és a bolt felületén sem kell semmit átírni — a gombot a
+plugin saját gridje rendeli. A minor bump azért van, mert a 0.1.x
+`docs/installation.md`-je kimondta, hogy a route „egy saját felületről
+hívható": aki ezt megtette, szállítmány-azonosítót küld, és annak most át kell
+írnia.
+
+### Változott
+
+- **A tömeges feladás a csomaglista kijelöléséből működik** (#208). A #198-ban
+  derült ki, hogy a grid-akció és a route két különböző azonosítóteret
+  használt: a Sylius tömeges mechanizmusa a kijelölt SOROK azonosítóit küldi
+  (`shared/helper/table.html.twig` → `value="{{ row.id }}"`, `bulk-delete.js` →
+  `ids[]`), ennek a gridnek a sorai pedig csomagok — a `bulkRegister()` viszont
+  `$em->find(ShipmentInterface::class, $id)`-vel szállítmányt keresett. Egy
+  kijelölt #11-es CSOMAG így a #11-es SZÁLLÍTMÁNYRA adott volna fel: másik
+  rendelésre, pénzbe kerülő API-hívással. A #198 ezért a grid-akciót
+  eltávolította; most a ROUTE igazodott a gridhez, és a gomb visszakerült.
+  A döntés oka, hogy ez a grid már eddig is így értette a feladást: a sor
+  szintű feladás-gomb is a csomagsorból veszi a szállítmányt
+  (`data.shipment.id`), és csak addig látszik, amíg a csomag még nem került
+  fel (`isRegisteredOrBeyond()`). A tömeges művelet jelentése tehát nem
+  szűkült, hanem kimondódott: a MÉG NEM feladott csomagok feladása, tipikusan
+  egy elbukott kör újrapróbálása. Szállítmányokról indított feladáshoz a
+  szállítmány-grid a helyes hely — az külön felület, nem ez a route.
+- **Egy már feladott csomag nem hiba, hanem kihagyott.** A „jelöld ki
+  mindet" a már feladott sorokat is beküldi; ezekre a controller API-hívás
+  nélkül lép tovább, és az összegző flash három számlálót ad
+  (`N sikeres, N kihagyva (már feladva), N hibás`). A szolgáltatás
+  `\LogicException`-je erre már késő lenne: az a hibaszámlálóba esne, és egy
+  ártalmatlan kijelölést sikertelen futásnak mutatna.
+- **A `bulkRegister()` negyedik paramétere `FoxpostParcelRepository`** az
+  `EntityManagerInterface` helyett. A controllert a router hívja, de a
+  metódus publikus — ezért van itt megírva.
+- **Az üres kijelölés hibaüzenete** „Nincsenek kiválasztott szállítmányok."
+  helyett „Nincsenek kiválasztott csomagok.".
+
+### Hozzáadva
+
+- **A tömeges feladás grid-akciója visszakerült** (`foxpost_bulk_register`
+  típus + sablon), megerősítő kérdéssel: a művelet csomagonként egy pénzbe
+  kerülő FoxPost API-hívás. Két új fordítási kulcs
+  (`bulk_register_confirm`, hu/en).
+- **Az azonosító-szerződés mérve** (#208): a tömeges feladás a kijelölt CSOMAG
+  mögötti szállítmányra megy — a teszt két, szándékosan összetéveszthető
+  azonosítóteret állít fel (a `11`-es csomag mögött a `4242`-es szállítmány, a
+  `11`-es azonosítón pedig egy MÁS szállítmány). Plusz: a négy számláló-ág egy
+  körben, a `isRegisteredOrBeyond()` mind az öt állapota API-hívás nélkül, a
+  host-szerződés nélküli szállítmány hibaként, és felületi oldalon az, hogy a
+  KÉT tömeges akció ugyanabból a jelölő-csoportból olvas. 298 → 310 teszt.
+
 ## [0.1.3] – 2026-10-10
 
 Javító kiadás: a nyomkövetés-szinkron záró naplója a futás EREDMÉNYÉT írja, nem
@@ -178,6 +233,7 @@ csomagba került, a protokoll-réteg a
   a futás eredményét (#173). *(Megoldva a `0.1.3`-ban.)*
 
 [Nem kiadott]: https://github.com/connorhu/foxpost-sylius-plugin/compare/0.1.3...main
+[0.2.0]: https://github.com/connorhu/foxpost-sylius-plugin/compare/0.1.3...0.2.0
 [0.1.3]: https://github.com/connorhu/foxpost-sylius-plugin/compare/0.1.2...0.1.3
 [0.1.2]: https://github.com/connorhu/foxpost-sylius-plugin/compare/0.1.1...0.1.2
 [0.1.1]: https://github.com/connorhu/foxpost-sylius-plugin/compare/0.1.0...0.1.1

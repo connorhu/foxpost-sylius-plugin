@@ -31,6 +31,7 @@ sylius_grid:
             foxpost_label: '@CodeConjureSyliusFoxPostPlugin/admin/parcel/_grid_label_action.html.twig'
             foxpost_cancel: '@CodeConjureSyliusFoxPostPlugin/admin/parcel/_grid_cancel_action.html.twig'
         bulk_action:
+            foxpost_bulk_register: '@CodeConjureSyliusFoxPostPlugin/admin/parcel/_grid_bulk_register_action.html.twig'
             foxpost_bulk_label: '@CodeConjureSyliusFoxPostPlugin/admin/parcel/_grid_bulk_label_action.html.twig'
     grids:
         app_admin_foxpost_parcel:
@@ -117,13 +118,19 @@ sylius_grid:
                         type: foxpost_cancel
                         label: codeconjure.foxpost.ui.cancel
                 bulk:
-                    # Tömeges FELADÁS szándékosan NINCS. A Sylius tömeges
-                    # mechanizmusa a kijelölt SOROK azonosítóit küldi (itt:
-                    # csomag-id-k), a `bulk_register` route viszont
-                    # SZÁLLÍTMÁNY-id-kat vár — a kettő összekötése más
-                    # szállítmányokra adna fel csomagot. A route és a
-                    # controller megvan, a grid-akció visszatételéhez a
-                    # paraméter-szerződést kell eldönteni.
+                    # Mindkét tömeges akció a Sylius generikus kijelöléséből
+                    # dolgozik, tehát UGYANAZT kapja: a kijelölt SOROK, azaz a
+                    # csomagok azonosítóit `ids[]`-ben. A `bulk_register` a
+                    # 0.1.x-ben szállítmány-azonosítót várt, ezért a #198 óta
+                    # nem volt grid-akciója; a #208 döntése után a route is
+                    # csomag-azonosítót olvas, és a gomb visszakerült. Ha a
+                    # kettő újra elcsúszik, egy kijelölt #11-es CSOMAG a
+                    # #11-es SZÁLLÍTMÁNYRA adna fel — más rendelésre, pénzbe
+                    # kerülő API-hívással. Az őr:
+                    # tests/Unit/Controller/FoxPostParcelControllerTest.
+                    register:
+                        type: foxpost_bulk_register
+                        label: codeconjure.foxpost.ui.bulk_register
                     label:
                         type: foxpost_bulk_label
                         label: codeconjure.foxpost.ui.bulk_label
