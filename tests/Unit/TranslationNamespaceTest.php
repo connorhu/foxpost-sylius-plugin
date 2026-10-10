@@ -73,11 +73,20 @@ final class TranslationNamespaceTest extends TestCase
         }
     }
 
+    /**
+     * Egy hivatkozott kulcsnak MINDKÉT nyelven fel kell oldódnia — de nem
+     * feltétlenül a `messages` domainben: a validációs constraintek üzenetei
+     * a `validators` katalógusba tartoznak (a Symfony azt a domaint használja
+     * a megsértett szabályokra). A #199 előtt ez a különbség nem látszott,
+     * mert a `codeconjure.foxpost.address` kulcsfa MINDKÉT domainben
+     * duplikálva volt; a két `NotBlank` üzenete viszont csak a
+     * `validators`-ban él, ahogy helyes.
+     */
     public function testEveryReferencedPluginKeyResolvesInBothLocales(): void
     {
         $catalogues = [
-            'hu' => self::flatten(self::parseCatalogue(self::translationsDir() . '/messages.hu.yaml')),
-            'en' => self::flatten(self::parseCatalogue(self::translationsDir() . '/messages.en.yaml')),
+            'hu' => self::mergedCatalogue('hu'),
+            'en' => self::mergedCatalogue('en'),
         ];
 
         $referenced = [];
@@ -103,15 +112,31 @@ final class TranslationNamespaceTest extends TestCase
         self::assertSame(['hu' => [], 'en' => []], $missing, 'Hivatkozott, de le nem fordított kulcs');
     }
 
-    public function testBothLocalesCarryTheSameKeys(): void
+    /** A két nyelv ugyanazokat a kulcsokat hordozza — DOMAINENKÉNT. */
+    #[DataProvider('domainProvider')]
+    public function testBothLocalesCarryTheSameKeys(string $domain): void
     {
-        $hu = array_keys(self::flatten(self::parseCatalogue(self::translationsDir() . '/messages.hu.yaml')));
-        $en = array_keys(self::flatten(self::parseCatalogue(self::translationsDir() . '/messages.en.yaml')));
+        $hu = array_keys(self::flatten(self::parseCatalogue(self::translationsDir() . '/' . $domain . '.hu.yaml')));
+        $en = array_keys(self::flatten(self::parseCatalogue(self::translationsDir() . '/' . $domain . '.en.yaml')));
 
         sort($hu);
         sort($en);
 
-        self::assertSame($hu, $en);
+        self::assertSame($hu, $en, $domain);
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function domainProvider(): iterable
+    {
+        $domains = [];
+
+        foreach (self::catalogues() as $path) {
+            $domains[explode('.', basename($path))[0]] = true;
+        }
+
+        foreach (array_keys($domains) as $domain) {
+            yield $domain => [$domain];
+        }
     }
 
     private static function root(): string
@@ -122,6 +147,30 @@ final class TranslationNamespaceTest extends TestCase
     private static function translationsDir(): string
     {
         return self::root() . '/translations';
+    }
+
+    /** @return list<string> */
+    /**
+     * A plugin ÖSSZES katalógusa egy nyelvre, egyetlen lapos leképezésben
+     * (`messages` + `validators`).
+     *
+     * @return array<string, string>
+     */
+    private static function mergedCatalogue(string $locale): array
+    {
+        $merged = [];
+
+        foreach (self::catalogues() as $path) {
+            if (!str_ends_with(basename($path), \sprintf('.%s.yaml', $locale))) {
+                continue;
+            }
+
+            $merged += self::flatten(self::parseCatalogue($path));
+        }
+
+        self::assertNotSame([], $merged, \sprintf('Nincs `%s` katalógus a translations/ alatt.', $locale));
+
+        return $merged;
     }
 
     /** @return list<string> */

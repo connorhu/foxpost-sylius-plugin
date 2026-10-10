@@ -27,22 +27,30 @@ use Sylius\Component\Shipping\Model\ShippingMethodInterface;
  * tartalma a `foxpostSameAsBilling` oszlop volt, és a szállítási cím azóta a
  * pénztár 1. lépésén dől el, a Sylius saját `differentShippingAddress`
  * kapcsolójával. A két mód-szintű mező (`pickupPointId`, `phoneNumber`)
- * sosem volt a traitben: azok tárolása a hosté (#116 3.10).
+ * sosem volt a traitben: azok tárolása a hosté (#116 3.10) — a #199 óta
+ * írható propertyként, mert a pénztár formját a plugin adja, és egy form a
+ * property path-on keresztül ÍR.
  */
 final class FoxPostShipment extends Shipment implements FoxPostShipmentInterface
 {
     private OrderInterface $foxpostOrder;
 
+    private ?string $pickupPointId;
+
+    private ?string $phoneNumber;
+
     public function __construct(
         private readonly ?string $deliveryKindSlug = DeliveryKind::ParcelLocker->value,
-        private readonly ?string $pickupPointId = 'HU1234',
-        private readonly ?string $phoneNumber = '+36301234567',
+        ?string $pickupPointId = 'HU1234',
+        ?string $phoneNumber = '+36301234567',
         ?OrderInterface $order = null,
         int $id = ParcelFixture::SHIPMENT_ID,
         ?ShippingMethodInterface $method = null,
     ) {
         parent::__construct();
 
+        $this->pickupPointId = $pickupPointId;
+        $this->phoneNumber = $phoneNumber;
         $this->foxpostOrder = $order ?? self::order();
         (new \ReflectionClass(Shipment::class))->getProperty('id')->setValue($this, $id);
 
@@ -62,9 +70,19 @@ final class FoxPostShipment extends Shipment implements FoxPostShipmentInterface
         return $this->pickupPointId;
     }
 
+    public function setPickupPointId(?string $pickupPointId): void
+    {
+        $this->pickupPointId = $pickupPointId;
+    }
+
     public function getPhoneNumber(): ?string
     {
         return $this->phoneNumber;
+    }
+
+    public function setPhoneNumber(?string $phoneNumber): void
+    {
+        $this->phoneNumber = $phoneNumber;
     }
 
     public function getOrder(): OrderInterface

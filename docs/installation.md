@@ -27,7 +27,7 @@ az a bolt a plugin első (és a mérések idején egyetlen) befogadója.
 | 4 | `.env` | igen | **hangos** — `EnvNotFoundException` |
 | 5 | `config/packages/_sylius.yaml` — pénztár hook | igen (ha van pénztár-UI) | néma — a FoxPost-mezők nem jelennek meg |
 | 6 | `config/packages/_sylius.yaml` — admin feladás-panel | igen | néma — a csomagot nem lehet feladni a rendelés lapjáról |
-| 7 | a checkout shipment form két mezője | igen (ha van pénztár-UI) | néma — a panelek kimaradnak |
+| 7 | a szállítmány-entitás két írható mezője | igen (ha van pénztár-UI) | **hangos** — `NoSuchPropertyException` a szállítási lépésen |
 | 8 | `config/services.yaml` — városkereső route | nem | néma — a postai kód → város kiegészítés nem működik |
 | 9 | `config/packages/sylius_labs_doctrine_migrations_extra.yaml` | csak frissítő boltnak | a migrációk sorrendje fordított |
 
@@ -243,12 +243,38 @@ README „Az admin szállítási panel" szakasza.
 A plugin sablonja a nem-FoxPost szállítási módoknál a Sylius saját
 panelját rendereli, tehát a csere nem FoxPost-specifikus boltot is kiszolgál.
 
-## 7. A checkout shipment form két mezője
+## 7. A szállítmány-entitás két írható mezője
 
-A `foxpost_fields.html.twig` **olvassa**, de nem hozza létre a `phoneNumber`
-és `pickupPointId` mezőket — ezeket a hostnak kell a shipment formhoz adnia,
-pontosan ezekkel a nevekkel. A szerződés (típusok, validációs csoportok, és
-hogy miért néma a hiányuk) a README „A pénztár felülete" szakaszában van.
+**A form mezőit a 0.3.0 óta a plugin adja** (`phoneNumber`, `pickupPointId` —
+`Form\Extension\CheckoutShipmentTypeExtension`), tehát ehhez a lépéshez nincs
+form-oldali dolgod. Amit a hostnak adnia kell, az a **tárolás**: a
+`FoxPostShipmentInterface` négy metódusa (getter ÉS setter mindkét mezőre) a
+szállítmány-entitáson, két perzisztált oszlop fölött.
+
+```php
+#[ORM\Column(name: 'pickup_point_id', type: Types::STRING, nullable: true)]
+private ?string $pickupPointId = null;
+
+#[ORM\Column(name: 'phone_number', type: Types::STRING, length: 30, nullable: true)]
+private ?string $phoneNumber = null;
+```
+
+A két oszlop szándékosan a hosté, nem a plugin traitjé: mindkettő
+**szolgáltatófüggetlen** (a telefonszámot a futáros mód is kéri, pedig annak
+nincs FoxPost típusa).
+
+A setterek nélkül a hiba **hangos**, de nem ott, ahol az ember keresné: a form
+a property path-on keresztül ír, tehát a Symfony `PropertyAccessor` a pénztár
+szállítási lépését állítja le
+(`Can't get a way to read the property "pickupPointId"`). Az interfész ezért
+deklarálja őket — így a hiányuk fordításkor derül ki, nem a pénztárban.
+
+**Felülírás.** A két mező alapértelmezés: a plugin kiterjesztése magas
+prioritással fut, tehát egy sima, prioritás nélküli host form kiterjesztés
+bármelyik mezőt lecserélheti (típust, feliratot, constrainteket). A
+referencia-bolt így írja át a telefonmezőt a saját, magyar mobilszámra
+szűkített validátorára. A részletek a README „A pénztár felülete"
+szakaszában.
 
 ## 8. Városkereső route (opcionális)
 

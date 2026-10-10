@@ -13,7 +13,7 @@ use CodeConjure\SyliusFoxPostPlugin\FoxPostParcelPayloadFactory;
 use CodeConjure\SyliusFoxPostPlugin\FoxPostParcelRegistrationService;
 use CodeConjure\SyliusFoxPostPlugin\Model\FoxPostShipmentInterface;
 use CodeConjure\SyliusFoxPostPlugin\Repository\FoxpostParcelRepository;
-use CodeConjure\SyliusFoxPostPlugin\Tests\Support\HostShipment;
+use CodeConjure\SyliusFoxPostPlugin\Tests\Support\FoxPostShipment;
 use Doctrine\ORM\EntityManagerInterface;
 use Http\Mock\Client as MockClient;
 use Nyholm\Psr7\Factory\Psr17Factory;
@@ -159,6 +159,6 @@ final class FoxPostParcelRegistrationServiceTest extends TestCase
         OrderInterface $order,
         ?string $phoneNumber,
     ): ShipmentInterface&FoxPostShipmentInterface {
-        return new HostShipment(DeliveryKind::HomeDelivery->value, null, $phoneNumber, $order);
+        return new FoxPostShipment(DeliveryKind::HomeDelivery->value, null, $phoneNumber, $order);
     }
 }
