@@ -8,6 +8,8 @@ kompatibilisek.
 
 ## [Nem kiadott]
 
+## [0.4.0] – 2026-11-12
+
 **Törő változás a host-szerződésben (#15).** A plugin a közös
 [`codeconjure/sylius-carrier-bundle`](https://github.com/connorhu/sylius-carrier-bundle)-ra
 épül: a pénztár két szállító-független mezőjét, a validációs csoportjaikat, a
@@ -373,7 +375,8 @@ csomagba került, a protokoll-réteg a
 - **A nyomkövetés-szinkron záró naplója a lekérdezés találatszámát írja**, nem
   a futás eredményét (#173). *(Megoldva a `0.1.3`-ban.)*
 
-[Nem kiadott]: https://github.com/connorhu/foxpost-sylius-plugin/compare/0.1.3...main
+[Nem kiadott]: https://github.com/connorhu/foxpost-sylius-plugin/compare/0.4.0...main
+[0.4.0]: https://github.com/connorhu/foxpost-sylius-plugin/compare/0.3.0...0.4.0
 [0.3.0]: https://github.com/connorhu/foxpost-sylius-plugin/compare/0.2.0...0.3.0
 [0.2.0]: https://github.com/connorhu/foxpost-sylius-plugin/compare/0.1.3...0.2.0
 [0.1.3]: https://github.com/connorhu/foxpost-sylius-plugin/compare/0.1.2...0.1.3
