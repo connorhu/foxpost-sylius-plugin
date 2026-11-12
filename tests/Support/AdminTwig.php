@@ -41,10 +41,17 @@ final class AdminTwig
 
     public const string LOCALE = 'hu';
 
-    public static function environment(): Environment
+    /**
+     * @param array<string, string> $extraNamespaces névtér => könyvtár, pl. egy
+     *        host-sablon (`@SyliusAdmin`) tesztbeli dublőre
+     */
+    public static function environment(array $extraNamespaces = []): Environment
     {
         $loader = new FilesystemLoader();
         $loader->addPath(self::root() . '/templates', self::NAMESPACE);
+        foreach ($extraNamespaces as $namespace => $path) {
+            $loader->addPath($path, $namespace);
+        }
 
         $twig = new Environment($loader, ['strict_variables' => true]);
         $twig->addExtension(new TranslationExtension(self::translator()));

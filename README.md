@@ -124,6 +124,38 @@ alapkonfigurációjából marad meg — a részleges felülírás kulcs szerint 
 **A plugin eltávolítása ezzel ennek az egy sornak a törlése**: a bolt sablonjai
 nem ismerik sem a plugin route-ját, sem a Twig-szűrőit (#193).
 
+### Más szállító-plugin ugyanezen a panelen (#15)
+
+A `props.template` **egyetlen** érték, tehát egy második szállító-plugin (GLS,
+Packeta) nem kaphat saját sort ugyanide — az egyik némán kiütné a másikat, és
+a vesztes szállító szállítmányán a Sylius sima „Szállítva" gombja jelenne meg,
+csomagfeladás nélkül.
+
+Ezért a plugin sablonja a **nem FoxPost-os** szállítmányoknál egy szállító-semleges,
+**abszolút nevű** hookot renderel:
+
+```
+codeconjure_carrier.admin.order.shipment.ship
+```
+
+Kontextus: `resource` (a szállítmány), `form` (a Sylius ship-űrlap nézete),
+`attributes` (a LiveComponent attribútumai). Egy másik szállító-plugin ide
+kapcsolódik, a saját „én kezelem-e ezt a módot?" feltételével — a hook neve
+foglalatlan, tehát a plugin `prepend()`-je be tudja vezetni, **host-lépés nélkül**:
+
+```yaml
+sylius_twig_hooks:
+    hooks:
+        'codeconjure_carrier.admin.order.shipment.ship':
+            gls:
+                template: '@CodeConjureSyliusGlsPlugin/admin/shipment/ship.html.twig'
+```
+
+A hookable sablonja **csak a saját módjainál** rajzoljon bármit. Ha a hookba
+egyetlen hookable sem rajzolt — a kimenet üres, csak whitespace, vagy csak a
+`kernel.debug` alatti Twig Hooks HTML-kommentjei —, a Sylius alapgombja jelenik
+meg, ahogy a #15 előtt. FoxPost-szállítmánynál a hook nem renderelődik.
+
 A rendelés-összegző átvételi pont-sora ehhez képest **nem kér host-lépést**: azt
 a plugin a `sylius_shop.shared.order.show.summary.addresses.shipping.pickup_point`
 hookra ülteti, amit a Sylius nem foglal — a hostnak csak annyi a dolga, hogy a

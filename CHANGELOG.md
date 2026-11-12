@@ -8,6 +8,16 @@ kompatibilisek.
 
 ## [Nem kiadott]
 
+### Hozzáadva
+
+- **Szállító-semleges hook az admin feladás-panelen** (#15). A nem FoxPost-os
+  szállítmányoknál a `ship` sablon a `codeconjure_carrier.admin.order.shipment.ship`
+  hookot rendereli (`resource`, `form`, `attributes` kontextussal); ha abba
+  egyetlen hookable sem rajzolt, a Sylius alapgombja jön, mint eddig. Így egy
+  második szállító-plugin a host egyetlen `props.template` sora mellett, saját
+  host-lépés nélkül tud bekapcsolódni. Visszafelé kompatibilis: csak FoxPost
+  mellett a kimenet változatlan.
+
 ## [0.3.0] – 2026-10-10
 
 **Törő változás a host-szerződésben.** A pénztár szállítási lépése két

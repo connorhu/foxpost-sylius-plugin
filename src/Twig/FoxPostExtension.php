@@ -45,6 +45,13 @@ final class FoxPostExtension extends AbstractExtension
                 'foxpost_handles_delivery',
                 [self::class, 'handlesDelivery'],
             ),
+            // A szállító-semleges admin slot (#15) kimenetéről dönt: üres-e,
+            // ha a Twig Hooks debug-kommentjeit (`kernel.debug` mellett minden
+            // hook és hookable köré kerülnek) nem számítjuk tartalomnak.
+            new TwigFunction(
+                'codeconjure_hook_output_is_blank',
+                [self::class, 'isBlankHookOutput'],
+            ),
         ];
     }
 
@@ -60,6 +67,17 @@ final class FoxPostExtension extends AbstractExtension
      * hanem csak nem látja a FoxPost blokkokat — ugyanaz a védelem, amit a
      * checkout-sablonok `is defined` ágai adnak.
      */
+    /**
+     * Egy hook kimenete akkor üres, ha a HTML-kommentek levágása után csak
+     * whitespace marad. `kernel.debug` mellett a Twig Hooks egy üres hookot is
+     * `<!-- BEGIN HOOK … -->` / `<!-- END HOOK … -->` párral ad vissza — enélkül
+     * a vizsgálat nélkül dev-ben a Sylius alapgombja eltűnne.
+     */
+    public static function isBlankHookOutput(string $html): bool
+    {
+        return '' === trim((string) preg_replace('/<!--.*?-->/s', '', $html));
+    }
+
     public static function handlesDelivery(mixed $subject): bool
     {
         if (!$subject instanceof DeliveryKindAwareInterface) {
