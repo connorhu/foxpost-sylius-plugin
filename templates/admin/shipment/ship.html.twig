@@ -38,5 +38,29 @@
         </div>
     {% endif %}
 {% else %}
-    {{ include('@SyliusAdmin/shipment/component/ship.html.twig') }}
+    {# Szállító-semleges slot (#15): a host egyetlen `props.template`-je ez a
+       sablon, tehát egy MÁSIK szállító-plugin (GLS, Packeta) nem kaphat saját
+       sort ugyanide — az egyik némán kiütné a másikat. Helyette ebbe az ABSZOLÚT
+       nevű hookba kapcsolódik, a saját „én kezelem-e ezt a módot?" feltételével.
+
+       A `_prefixes: []` szándékos: a komponens-sablon nem hookable, de ha egy
+       későbbi Sylius-verzió hookable-metaadatot adna neki, a név akkor se
+       kapjon előtagot — a szerződés a fix név.
+
+       Ha egyetlen plugin sem rajzolt semmit, a Sylius alapgombja jön, ahogy
+       a #15 előtt. A „semmi" a debug-kommentek NÉLKÜL értendő: `kernel.debug`
+       mellett a Twig Hooks egy üres hookot is HTML-kommentekkel ad vissza. #}
+    {% set carrier_action %}
+        {%- hook 'codeconjure_carrier.admin.order.shipment.ship' with {
+            resource: resource,
+            form: form,
+            attributes: attributes,
+            _prefixes: [],
+        } -%}
+    {% endset %}
+    {% if not codeconjure_hook_output_is_blank(carrier_action) %}
+        {{ carrier_action }}
+    {% else %}
+        {{ include('@SyliusAdmin/shipment/component/ship.html.twig') }}
+    {% endif %}
 {% endif %}

@@ -240,8 +240,12 @@ Ugyanaz a mechanizmus, mint az 5. lépésnél: a `ship` kulcs a Syliusé. A
 `pathParameters` propjai megmaradnak — csak a sablon cserélődik. Részletek: a
 README „Az admin szállítási panel" szakasza.
 
-A plugin sablonja a nem-FoxPost szállítási módoknál a Sylius saját
-panelját rendereli, tehát a csere nem FoxPost-specifikus boltot is kiszolgál.
+A plugin sablonja a nem-FoxPost szállítási módoknál előbb a szállító-semleges
+`codeconjure_carrier.admin.order.shipment.ship` hookot rendereli (#15) — ide
+kapcsolódhat egy másik szállító-plugin, host-lépés nélkül —, és ha az üres, a
+Sylius saját panelját. A csere tehát nem FoxPost-specifikus boltot is kiszolgál,
+és egy második szállító-plugin mellett is egyetlen sor marad. Részletek: a
+README „Más szállító-plugin ugyanezen a panelen" szakasza.
 
 ## 7. A szállítmány-entitás két írható mezője
 
