@@ -46,15 +46,6 @@ codeconjure:
         shipping_method:
             default_size: Foxpost alapértelmezett csomagméret
             default_size_placeholder: Nincs megadva
-        checkout:
-            # A 2. lépés FoxPost-mezői (#199). A pluginból jövő, host által
-            # felülírható alapértelmezés — l. CheckoutShipmentTypeExtension.
-            pickup_point_id: Csomagautomata
-            phone_number:
-                label: Telefonszám
-                help: A csomagautomata a kiszállításról SMS-t küld erre a számra.
-            parcel_locker:
-                title: Csomagautomata adatai
         pickup_point:
             title: Csomagautomata
             select: Csomagautomata kiválasztása

@@ -3,11 +3,6 @@
            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
            xsi:schemaLocation="http://symfony.com/schema/dic/services https://symfony.com/schema/dic/services/services-1.0.xsd">
     <parameters>
-        <!-- A bolt-oldali városkereső route neve. A plugin nem ismerhet host
-             route-nevet; ezt a Task 14-ben a host állítja a saját route-jára.
-             Alapból null: a sablon ekkor a data-attribútumot ki sem teszi. -->
-        <parameter key="codeconjure.foxpost.city_lookup_route">null</parameter>
-
         <!-- C4: a %env(bool:FOXPOST_SANDBOX)% korábban KÖZVETLENÜL, egyetlen
              <argument>-ként került a codeconjure.foxpost.environment enum-
              szolgáltatás statikus factory-hívásába. Ez a minta (egy teljes
@@ -18,8 +13,8 @@
              getEnv()-hívássá alakul — futásidőben $container->getParameter(
              'env(bool:FOXPOST_SANDBOX)')-t generál, ami ParameterNotFound-
              Exception-t dob, mert az env-placeholder sosem fagy be valódi
-             paraméterré. A javítás a MÁR bevált city_lookup_route mintát
-             követi: egy explicit <parameter> a paraméter-listában garantáltan
+             paraméterré. A javítás a plugin akkori city_lookup_route
+             paraméterének mintáját követte: egy explicit <parameter> a paraméter-listában garantáltan
              regisztrált bejegyzés, amit a ResolveParameterPlaceHoldersPass a
              paraméter-bag SAJÁT feloldásán keresztül old fel — ez Symfony
              legszélesebb körben tesztelt útja env-alapú konfigurációs
@@ -72,31 +67,17 @@
         <service id="CodeConjure\SyliusFoxPostPlugin\Controller\FoxPostParcelController"/>
         <service id="CodeConjure\SyliusFoxPostPlugin\Controller\FoxPostLabelController"/>
         <service id="CodeConjure\SyliusFoxPostPlugin\Menu\AdminMenuListener"/>
-        <service id="CodeConjure\SyliusFoxPostPlugin\Form\Type\FoxPostPickupPointSelectType"/>
         <service id="CodeConjure\SyliusFoxPostPlugin\Twig\FoxPostExtension"/>
-        <service id="CodeConjure\SyliusFoxPostPlugin\Twig\FoxPostRuntime">
-            <bind key="$cityLookupRoute">%codeconjure.foxpost.city_lookup_route%</bind>
-        </service>
+        <service id="CodeConjure\SyliusFoxPostPlugin\Twig\FoxPostRuntime"/>
 
-        <!-- Pénztár: a checkout válaszd-ki-a-szállítást form validációs csoportjai -->
-        <service id="CodeConjure\SyliusFoxPostPlugin\Form\Extension\SelectShippingTypeExtension"/>
-
-        <!-- Pénztár: a shipment FoxPost-mezői (#199). Az `autoconfigure` itt
-             KI van kapcsolva, és a taget kézzel tesszük fel: az autoconfigure
-             prioritás nélküli `form.type_extension` taget ad, a kettő együtt
-             pedig KÉT taget jelentene ugyanazon a szolgáltatáson, vagyis a
-             kiterjesztés kétszer futna. A prioritás szerepét l. az osztály
-             PHPDoc-jában — ez teszi a két mezőt a host által felülírható
-             alapértelmezéssé. -->
-        <service id="CodeConjure\SyliusFoxPostPlugin\Form\Extension\CheckoutShipmentTypeExtension"
-                 autoconfigure="false">
-            <tag name="form.type_extension" priority="16"/>
-        </service>
+        <!-- A pénztár két mezője (pickupPointId, phoneNumber) és a validációs
+             csoportjaik a #15 óta a közös codeconjure/sylius-carrier-bundle-é:
+             a FoxPost nem ad saját mezőt a checkout form-okhoz. -->
 
         <!-- Admin: a szállítási mód foxpostDefaultSize mezője. A deliveryKind
              mező a boltban marad, lásd az osztály PHPDoc-ját. Az autoconfigure
              a getExtendedTypes()-ből automatikusan felteszi a form.type_extension
-             taget, ahogy a SelectShippingTypeExtension-nél is. -->
+             taget, ahogy a ChannelTypeExtension-nél is. -->
         <service id="CodeConjure\SyliusFoxPostPlugin\Form\Extension\ShippingMethodTypeExtension"/>
 
         <!-- Admin: a csatorna foxpostLabelPageSize mezője. -->

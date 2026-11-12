@@ -54,6 +54,8 @@ final class ContinuousIntegrationContractTest extends TestCase
     private const array GATES = [
         'phpunit.xml.dist' => 'vendor/bin/phpunit',
         'phpstan.dist.neon' => 'vendor/bin/phpstan',
+        // A Stimulus controller tesztje (vitest + jsdom, #15).
+        'assets/vitest.config.js' => 'npm test',
         'ecs.php' => 'vendor/bin/ecs',
     ];
 

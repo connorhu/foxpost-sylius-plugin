@@ -202,12 +202,10 @@ final class InstallationContractTest extends TestCase
         yield 'bundle-osztály' => ['CodeConjureSyliusFoxPostPlugin::class', 'config/bundles.php'];
         yield 'route-import' => ['@CodeConjureSyliusFoxPostPlugin/src/Resources/config/routes.yaml', 'route-import'];
         yield 'npm-csomagnév' => ['@codeconjure/foxpost-sylius-plugin', 'assets/controllers.json'];
-        yield 'városkereső paraméter' => ['codeconjure.foxpost.city_lookup_route', 'config/services.yaml'];
-        yield 'pénztár hookable' => ['sylius_shop.checkout.select_shipping.content.form.shipments', '_sylius.yaml'];
-        yield 'admin hookable' => ['sylius_admin.order.show.content.sections.shipments.item.actions', '_sylius.yaml'];
+        yield 'a közös szállító-csomag' => ['codeconjure/sylius-carrier-bundle', 'composer + config/bundles.php'];
+        yield 'a közös csomag bundle-osztálya' => ['CodeConjureSyliusCarrierBundle::class', 'config/bundles.php'];
         yield 'migrációs névtér' => ['CodeConjure\SyliusFoxPostPlugin\Migrations', 'migrations_extra'];
-        yield 'checkout mező: telefon' => ['phoneNumber', 'checkout form'];
-        yield 'checkout mező: automata' => ['pickupPointId', 'checkout form'];
+        yield 'a mód átvételi pontos jelzője' => ['deliversToPickupPoint', 'a szállítási mód entitása'];
     }
 
     #[DataProvider('hostTouchpointProvider')]
@@ -221,30 +219,22 @@ final class InstallationContractTest extends TestCase
     }
 
     /**
-     * A két hookable-név, amit a hostnak kell felülregisztrálnia, TÉNYLEGESEN
-     * szerepel a plugin hooks.yaml-jában — különben a dokumentum olyan
-     * lépést ír le, aminek nincs mit kiszolgálnia.
+     * A plugin a #15 óta SEMMILYEN Sylius-foglalt hookable kulcsot nem kér a
+     * hosttól: a pénztár `shipment` ciklusát és az admin `ship` sablonját a
+     * közös `codeconjure/sylius-carrier-bundle` sablonjaira állítja a host
+     * (a közös csomag telepítési leírása szerint), a FoxPost pedig ÚJ nevű
+     * hookokba kapcsolódik, amiket a `prepend()` magától bevezet.
      */
-    public function testTheTwoHostOverriddenHookablesExistInThePluginConfiguration(): void
+    public function testThePluginClaimsNoSyliusOwnedHookableAnyMore(): void
     {
         $hooks = Yaml::parseFile(self::path('src/Resources/config/app/hooks.yaml'));
         \assert(\is_array($hooks));
-
         $root = $hooks['sylius_twig_hooks'] ?? null;
         \assert(\is_array($root));
+        $defined = (array) ($root['hooks'] ?? []);
 
-        $defined = array_keys((array) ($root['hooks'] ?? []));
-
-        foreach ([
-            'sylius_shop.checkout.select_shipping.content.form.shipments',
-            'sylius_admin.order.show.content.sections.shipments.item.actions',
-        ] as $hookable) {
-            self::assertContains(
-                $hookable,
-                $defined,
-                sprintf('A docs/installation.md a(z) „%s" felülregisztrálását írja elő, de a plugin hooks.yaml-ja nem definiálja.', $hookable),
-            );
-        }
+        self::assertArrayNotHasKey('sylius_shop.checkout.select_shipping.content.form.shipments', $defined);
+        self::assertArrayNotHasKey('sylius_admin.order.show.content.sections.shipments.item.actions', $defined);
     }
 
     private function containerWithHostExtensions(): ContainerBuilder
@@ -256,7 +246,6 @@ final class InstallationContractTest extends TestCase
             'framework',
             'sylius_resource',
             'sylius_grid',
-            'twig',
             'sylius_twig_hooks',
             'doctrine_migrations',
             'sylius_labs_doctrine_migrations_extra',

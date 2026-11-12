@@ -18,7 +18,7 @@ final class CodeConjureSyliusFoxPostExtension extends Extension implements Prepe
 
     /**
      * A plugin öt saját YAML-ja más-más extension gyökérkulcsával kezdődik
-     * (framework, sylius_resource, sylius_grid, twig, sylius_twig_hooks) —
+     * (framework, sylius_resource, sylius_grid, sylius_twig_hooks) —
      * ezeket csak `prependExtensionConfig()`-gal lehet átadni a HOST azon
      * extensionjének, ami tényleg felelős értük. A `load()` egy
      * extension-mentes konténert kap (a MergeExtensionConfigurationPass így
@@ -32,7 +32,6 @@ final class CodeConjureSyliusFoxPostExtension extends Extension implements Prepe
         'framework' => 'foxpost_parcel.yaml',
         'sylius_resource' => 'sylius_resource.yaml',
         'sylius_grid' => 'grid.yaml',
-        'twig' => 'config.yaml',
         'sylius_twig_hooks' => 'hooks.yaml',
     ];
 

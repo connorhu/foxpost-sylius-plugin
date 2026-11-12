@@ -1,10 +1,22 @@
 import { Controller } from '@hotwired/stimulus';
 
-const WIDGET_ORIGIN_PROD = 'https://cdn.foxpost.hu';
-const WIDGET_ORIGIN_TEST = 'https://cdn.foxpost.hu'; // sandbox is also served from CDN
+// A FoxPost térképes választója (iframe) erről az originről küldi a
+// választott pontot. PONTOS egyezés kell: egy `origin.includes('foxpost.hu')`
+// vizsgálaton egy `https://cdn.foxpost.hu.tamado.example` oldal is átment
+// volna, és hamis pontot írhatott volna a pénztárba. A sandbox is a CDN-ről jön.
+const WIDGET_ORIGIN = 'https://cdn.foxpost.hu';
+
+/**
+ * A FoxPost csomagautomata-választója a pénztárban (#15).
+ *
+ * A widget a közös `codeconjure/sylius-carrier-bundle` `carrier-shipment`
+ * hatókörében ül. A választott pontot NEM írja közvetlenül a mezőbe: a
+ * `carrier:pickup-point-selected` eseményt küldi (`detail: { id, label }`),
+ * és a mezőt a közös controller tölti — egy mező, akárhány szállító widgetje.
+ */
 
 export default class extends Controller {
-    static targets = ['input', 'display', 'pointName', 'pointAddress', 'button'];
+    static targets = ['display', 'pointName', 'pointAddress', 'button'];
     static values = { widgetUrl: String };
 
     #modal = null;
@@ -84,8 +96,7 @@ export default class extends Controller {
     }
 
     #handleMessage(event) {
-        // Csak a FoxPost CDN-ről fogadjunk üzeneteket
-        if (!event.origin.includes('foxpost.hu')) {
+        if (event.origin !== WIDGET_ORIGIN) {
             return;
         }
 
@@ -132,16 +143,11 @@ export default class extends Controller {
     }
 
     #applySelection(pointId, pointName, pointAddress) {
-        // Hidden input frissítése
-        if (this.hasInputTarget) {
-            this.inputTarget.value = pointId;
-        } else {
-            // Ha nincs explicit target, az első hidden input-ot keressük
-            const hidden = this.element.querySelector('input[type="hidden"]');
-            if (hidden) {
-                hidden.value = pointId;
-            }
-        }
+        // A mezőt a közös `carrier-shipment` controller tölti.
+        this.element.dispatchEvent(new CustomEvent('carrier:pickup-point-selected', {
+            bubbles: true,
+            detail: { id: pointId, label: pointName ?? pointId },
+        }));
 
         // Megjelenítési szöveg frissítése
         if (this.hasPointNameTarget) {

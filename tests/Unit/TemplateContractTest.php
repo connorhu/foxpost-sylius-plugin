@@ -65,14 +65,11 @@ final class TemplateContractTest extends TestCase
     }
 
     /**
-     * A #193-ban átvett két ág bekötése, hookable-névvel együtt.
-     *
-     * A `pickup_point` hook neve ÚJ (a Sylius nem foglalja), ezért a plugin
-     * `prepend()`-je ténylegesen hozzáadja. A `ship` kulcs viszont a
-     * SyliusAdminBundle-é: azt a `prepend()` nem tudja átállítani, a
-     * `props.template` cseréje a befogadó bolt egy sora (README). Ez a teszt
-     * így a plugin SZÁNDÉKÁT őrzi mindkettőnél; hogy a hostban meg is történt,
-     * azt a bolt `FoxPostPluginWiringTest`-je méri.
+     * A plugin sablonjainak bekötése, hookable-névvel együtt. Mindhárom hook
+     * neve ÚJ (a Sylius nem foglalja), tehát a plugin `prepend()`-je
+     * ténylegesen hozzáadja — host-lépés nélkül. A két Sylius-foglalt slotot
+     * (pénztár `shipment`, admin `ship`) a #15 óta a közös
+     * `codeconjure/sylius-carrier-bundle` sablonjai töltik.
      *
      * @param list<string> $path
      */
@@ -96,16 +93,26 @@ final class TemplateContractTest extends TestCase
             self::NAMESPACE_PREFIX . 'shop/order/summary_pickup_point.html.twig',
         ];
 
-        yield 'admin szállítási panel' => [
+        yield 'admin feladás-gomb a közös szállító-hookon (#15)' => [
             [
                 'sylius_twig_hooks',
                 'hooks',
-                'sylius_admin.order.show.content.sections.shipments.item.actions',
-                'ship',
-                'props',
+                'codeconjure_carrier.admin.order.shipment.ship',
+                'foxpost',
                 'template',
             ],
             self::NAMESPACE_PREFIX . 'admin/shipment/ship.html.twig',
+        ];
+
+        yield 'pénztár automata-választó a közös widget-hookon (#15)' => [
+            [
+                'sylius_twig_hooks',
+                'hooks',
+                'sylius_shop.checkout.select_shipping.content.form.shipments.shipment.carrier_fields',
+                'foxpost',
+                'template',
+            ],
+            self::NAMESPACE_PREFIX . 'shop/checkout/select_shipping/pickup_point_widget.html.twig',
         ];
     }
 

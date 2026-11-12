@@ -6,12 +6,6 @@
     "type": "module",
     "symfony": {
         "controllers": {
-            "foxpost-shipping": {
-                "main": "controllers/foxpost_shipping_controller.js",
-                "name": "foxpost-shipping",
-                "fetch": "eager",
-                "enabled": true
-            },
             "foxpost-pickup-point": {
                 "main": "controllers/foxpost_pickup_point_controller.js",
                 "name": "foxpost-pickup-point",
@@ -22,5 +16,13 @@
     },
     "peerDependencies": {
         "@hotwired/stimulus": "^3.0.0"
+    },
+    "scripts": {
+        "test": "vitest run"
+    },
+    "devDependencies": {
+        "@hotwired/stimulus": "^3.2.2",
+        "jsdom": "^26.1.0",
+        "vitest": "^3.2.4"
     }
 }

@@ -8,15 +8,62 @@ kompatibilisek.
 
 ## [Nem kiadott]
 
+**Törő változás a host-szerződésben (#15).** A plugin a közös
+[`codeconjure/sylius-carrier-bundle`](https://github.com/connorhu/sylius-carrier-bundle)-ra
+épül: a pénztár két szállító-független mezőjét, a validációs csoportjaikat, a
+szállítmányonkénti Stimulus-hatókört és az admin feladás-slotot az a csomag
+adja, egyszer — így egy második szállító-plugin (GLS, Packeta) nem ütközik a
+FoxPosttal. A befogadó bolt frissítéskor:
+
+1. regisztrálja a `CodeConjureSyliusCarrierBundle`-t a FoxPost **elé**;
+2. a két `_sylius.yaml` sort (`…form.shipments` → `shipment`, `…item.actions`
+   → `ship` → `props.template`) a **közös csomag** sablonjaira állítja;
+3. a szállítási mód-entitásán megvalósítja a `deliversToPickupPoint()`-ot
+   (a csomagautomata-fajtánál `true`);
+4. ha felülírta a `foxpost_fields` hookable-t: helyette a közös csomag
+   `carrier_fields`-ét írja felül, és abban meghívja a `{% hook 'carrier_fields' %}`-ot.
+
+Részletek: `docs/installation.md` 5. és 7. lépés.
+
+### Változott
+
+- `FoxPostShipmentInterface` → `CarrierShipmentInterface`,
+  `FoxPostShippingMethodInterface` → `CarrierShippingMethodInterface`
+  kiterjesztése. A szállítási mód interfésze a `DeliveryKindAwareInterface`-t
+  nem terjeszti ki többé (ugyanazt a metódust deklarálná kétszer, amit a
+  PHPUnit mock-generátora nem tud dublőrözni).
+- A csomagautomata-választó a közös csomag widget-hookjába került
+  (`…shipments.shipment.carrier_fields` → `foxpost`,
+  `pickup_point_widget.html.twig`), és a pontot a
+  `carrier:pickup-point-selected` eseménnyel adja át.
+- Az admin feladás-gomb hookable a `codeconjure_carrier.admin.order.shipment.ship`
+  hookon, és csak FoxPost-módnál rajzol.
+
+### Javítva
+
+- A FoxPost térképének üzenetét a választó csak a `https://cdn.foxpost.hu`
+  originről fogadja el, **pontos egyezéssel**. Az eddigi
+  `origin.includes('foxpost.hu')` egy `https://cdn.foxpost.hu.tamado.example`
+  oldalt is átengedett, ami hamis pontot írhatott volna a pénztárba.
+
+### Eltávolítva
+
+- `Form\Extension\CheckoutShipmentTypeExtension`, `SelectShippingTypeExtension`,
+  `Form\Type\FoxPostPickupPointSelectType` és a form-témája; a
+  `foxpost_parcel_locker` validációs csoport (helyette a közös
+  `pickup_point_required`).
+- A `foxpost_fields` és a `shipments` pénztár-sablon, a `foxpost-shipping`
+  Stimulus controller (a láthatóságot a közös `carrier-shipment` kezeli; a
+  városkereső-ága a #99 óta nem kapott célelemet, a `window.foxpost` ága egy
+  sehol be nem töltött globálisra várt).
+- A `codeconjure.foxpost.city_lookup_route` paraméter és a
+  `foxpost_city_lookup_url()` Twig-függvény.
+- A `codeconjure.foxpost.checkout.*` fordítási kulcsok és a `validators`
+  katalógus (a mezőkkel együtt a közös csomagba költöztek).
+
 ### Hozzáadva
 
-- **Szállító-semleges hook az admin feladás-panelen** (#15). A nem FoxPost-os
-  szállítmányoknál a `ship` sablon a `codeconjure_carrier.admin.order.shipment.ship`
-  hookot rendereli (`resource`, `form`, `attributes` kontextussal); ha abba
-  egyetlen hookable sem rajzolt, a Sylius alapgombja jön, mint eddig. Így egy
-  második szállító-plugin a host egyetlen `props.template` sora mellett, saját
-  host-lépés nélkül tud bekapcsolódni. Visszafelé kompatibilis: csak FoxPost
-  mellett a kimenet változatlan.
+- Vitest + jsdom a Stimulus controllerhez (`cd assets && npm test`), CI-jobbal.
 
 ## [0.3.0] – 2026-10-10
 

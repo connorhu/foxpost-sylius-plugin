@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CodeConjure\SyliusFoxPostPlugin\Twig;
 
 use CodeConjure\FoxPost\DeliveryKind;
+use CodeConjure\SyliusCarrierBundle\Model\CarrierShippingMethodInterface;
 use CodeConjure\SyliusFoxPostPlugin\Model\DeliveryKindAwareInterface;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFilter;
@@ -12,6 +13,8 @@ use Twig\TwigFunction;
 
 final class FoxPostExtension extends AbstractExtension
 {
+    public const string PICKUP_POINT_WIDGET_URL = 'https://cdn.foxpost.hu/apt-finder/v1/app/';
+
     public function getFilters(): array
     {
         return [
@@ -33,9 +36,11 @@ final class FoxPostExtension extends AbstractExtension
                 'foxpost_parcel_for_shipment',
                 [FoxPostRuntime::class, 'foxpostParcelForShipment'],
             ),
+            // A FoxPost térképes automata-választója (iframe) — a pénztár
+            // widgetje (#15) ezt nyitja meg.
             new TwigFunction(
-                'foxpost_city_lookup_url',
-                [FoxPostRuntime::class, 'cityLookupUrl'],
+                'foxpost_pickup_point_widget_url',
+                [self::class, 'pickupPointWidgetUrl'],
             ),
             // Szándékosan statikus, nem a runtime példánymetódusa: a kérdéshez
             // se API-kliens, se adatbázis nem kell, és így a sablonokba került
@@ -45,14 +50,12 @@ final class FoxPostExtension extends AbstractExtension
                 'foxpost_handles_delivery',
                 [self::class, 'handlesDelivery'],
             ),
-            // A szállító-semleges admin slot (#15) kimenetéről dönt: üres-e,
-            // ha a Twig Hooks debug-kommentjeit (`kernel.debug` mellett minden
-            // hook és hookable köré kerülnek) nem számítjuk tartalomnak.
-            new TwigFunction(
-                'codeconjure_hook_output_is_blank',
-                [self::class, 'isBlankHookOutput'],
-            ),
         ];
+    }
+
+    public static function pickupPointWidgetUrl(): string
+    {
+        return self::PICKUP_POINT_WIDGET_URL;
     }
 
     /**
@@ -67,20 +70,9 @@ final class FoxPostExtension extends AbstractExtension
      * hanem csak nem látja a FoxPost blokkokat — ugyanaz a védelem, amit a
      * checkout-sablonok `is defined` ágai adnak.
      */
-    /**
-     * Egy hook kimenete akkor üres, ha a HTML-kommentek levágása után csak
-     * whitespace marad. `kernel.debug` mellett a Twig Hooks egy üres hookot is
-     * `<!-- BEGIN HOOK … -->` / `<!-- END HOOK … -->` párral ad vissza — enélkül
-     * a vizsgálat nélkül dev-ben a Sylius alapgombja eltűnne.
-     */
-    public static function isBlankHookOutput(string $html): bool
-    {
-        return '' === trim((string) preg_replace('/<!--.*?-->/s', '', $html));
-    }
-
     public static function handlesDelivery(mixed $subject): bool
     {
-        if (!$subject instanceof DeliveryKindAwareInterface) {
+        if (!$subject instanceof DeliveryKindAwareInterface && !$subject instanceof CarrierShippingMethodInterface) {
             return false;
         }
 

@@ -11,156 +11,43 @@ composer require codeconjure/foxpost-sylius-plugin
 ```
 
 Ez **önmagában nem elég**: a plugin mögött nincs Flex recipe, ezért a befogadó
-boltban kilenc helyen kell konfigurációt hozzátenni — bundle-regisztráció,
-route-import, Stimulus controllerek, `.env`, két hook-felülírás, a checkout
-két mezője, és (opcionálisan) a városkereső route.
+boltban néhány helyen kell konfigurációt hozzátenni — bundle-regisztráció,
+route-import, `.env`, a közös szállító-csomag két host-sora, és a két entitás
+szerződése.
 
 **A teljes lista hibamódokkal és másolható blokkokkal:
 [`docs/installation.md`](docs/installation.md).**
 
-A két „host-szerződés" szakasz lentebb ugyanezeknek a lépéseknek a
-részletezése (a pénztár-hook és a checkout mezői: 5. és 7. lépés; az admin
-feladás-panel: 6. lépés); a telepítési dokumentum visszautal rájuk.
+## A közös szállító-csomagra épül (0.4.0, #15)
 
-## A pénztár felülete — host-szerződés a checkout mezőkről
+A pénztár két szállító-független mezőjét (`pickupPointId`, `phoneNumber`), a
+validációs csoportjaikat, a szállítmányonkénti Stimulus-hatókört és az admin
+feladás-slotot a **[`codeconjure/sylius-carrier-bundle`](https://github.com/connorhu/sylius-carrier-bundle)**
+adja — egyszer, akárhány szállító-plugin van telepítve. Enélkül egy második
+szállító (GLS, Packeta) ütközne a FoxPosttal: egy Symfony-mező csak egyszer
+renderelhető, két azonos nevű `add()` közül a második felülírja az elsőt, és a
+Sylius két hook-slotja egyetlen host-sort fogad.
 
-**A hostnak saját magának kell felülregisztrálnia a `shipment` hookable-t.**
-A plugin két hookot ad a `sylius_shop.checkout.select_shipping.content.form.shipments`
-hookable-hez:
+A FoxPost ebbe két ponton kapcsolódik, **host-lépés nélkül** (mindkét hook-név
+új, a `prepend()` bevezeti):
 
-- `shipment` — a `templates/shop/checkout/select_shipping/shipments.html.twig`,
-  ami a Stimulus controller wrappert (`data-controller="foxpost-shipping"`)
-  teszi ki minden shipment köré, és **`order`-t is átad** a beágyazott
-  `…shipments.shipment` hooknak.
-
-  Ez a név viszont **már foglalt**: a SyliusShopBundle saját maga is definiál
-  egy `shipment` hookot ugyanide (`@SyliusShop/...`), és a plugin
-  `prepend()`-je **nem tudja felülírni** egy már betöltött bundle saját
-  definícióját — a `PrependExtensionInterface` csak addig ér, amíg a
-  konfigurációt EGYMÁSSAL egyesíti, a hookable-nevek foglalását nem. Emiatt
-  ez a bejegyzés a plugin `hooks.yaml`-jában ma **holt**: amíg a host nem
-  regisztrálja felül explicit saját `config/packages/_sylius.yaml`-jában
-  (`priority` úgy, hogy nyerjen), a Sylius alap `shipment` sablonja fut,
-  ami **nem ad át `order`-t** a beágyazott hooknak, és a FoxPost-blokkok
-  (`foxpost_fields.html.twig`) meg sem jelennek — az bármelyik shipment-re
-  vonatkozó hook csak `form`-ot és `index`-et kap.
-
-  Ezt a hostnak kell megtennie:
-  ```yaml
-  sylius_twig_hooks:
-      hooks:
-          'sylius_shop.checkout.select_shipping.content.form.shipments':
-              shipment:
-                  template: '@CodeConjureSyliusFoxPostPlugin/shop/checkout/select_shipping/shipments.html.twig'
-                  priority: 0   # vagy magasabb, ha a host maga is hookol ide
-  ```
-
-  A `foxpost_fields.html.twig` nem olvassa a `context.order`-t — a szállítási
-  cím a #99 óta az 1. lépésen dől el, ide már csak a módhoz tartozó két mező
-  (telefon, csomagautomata) tartozik, a lenti szerződés szerint.
-
-- `foxpost_fields` — a shipment form két FoxPost-mezőjét rendeli. **A
-  mezőket a #199 óta a plugin maga adja hozzá** a
-  `Form\Extension\CheckoutShipmentTypeExtension`-ben: egy üres Sylius
-  boltban a plugin telepítése után a pénztár szállítási lépésén megjelenik a
-  csomagautomata-választó és a címzett-telefon mező, **host-oldali form
-  extension nélkül**. A szállítási CÍM nem tartozik ide — az a #99 óta az 1.
-  lépésen dől el, a Sylius saját `differentShippingAddress` kapcsolójával.
-
-| Mező | A plugin alapértelmezése | Mire kell |
+| Hol | Hook | Mit ad a FoxPost |
 |---|---|---|
-| `phoneNumber` | `TelType` + `NotBlank` a `recipient_phone_required` csoportra | Címzett telefonszáma — a láthatóságát a Stimulus controller a választott mód `data-requires-recipient-phone` attribútuma szerint kapcsolja |
-| `pickupPointId` | `FoxPostPickupPointSelectType` (a plugin saját típusa) + `NotBlank` a `foxpost_parcel_locker` csoportra | FoxPost csomagautomata: a kiválasztott automata azonosítója |
+| Pénztár | `sylius_shop.checkout.select_shipping.content.form.shipments.shipment.carrier_fields` | a csomagautomata-választót (`pickup_point_widget.html.twig`, `data-carrier-delivery-kinds="foxpost_parcel_locker"`) |
+| Admin | `codeconjure_carrier.admin.order.shipment.ship` | a feladás-gombot, CSAK FoxPost-módnál (`admin/shipment/ship.html.twig`) |
 
-### A két mező ALAPÉRTELMEZÉS, nem szerződés
+A választó a pontot a `carrier:pickup-point-selected` eseménnyel adja át (a
+mezőbe a közös `carrier-shipment` controller ír), és a FoxPost térképének
+üzenetét csak a `https://cdn.foxpost.hu` originről fogadja el — pontos
+egyezéssel.
 
-Mindkét mező felülírható: írj a boltban egy sima form kiterjesztést a
-`Sylius\Bundle\CoreBundle\Form\Type\Checkout\ShipmentType`-ra, és add
-hozzá újra a mezőt a magadéval. A plugin kiterjesztése **magas prioritással**
-(`CheckoutShipmentTypeExtension::PRIORITY`) fut, a te 0 prioritású
-kiterjesztésed pedig utána — a `ResolvedFormType::buildForm()` ebben a
-sorrendben hívja őket, tehát a tiéd nyer. Nem kell hozzá semmilyen
-plugin-oldali konfigurációs felület.
+A rendelés-összegző átvételi pont-sora (`…summary.addresses.shipping.pickup_point`
+hook) változatlan: a host a szállítási blokkjában hívja
+(`{% hook 'pickup_point' with { shipment: shipment } %}`), a FoxPost hookable-je
+a saját módjainál rajzol.
 
-A referencia-bolt pontosan ezt teszi a telefonmezővel: a `pickupPointId`-t a
-pluginból kapja, a `phoneNumber`-t viszont a saját, magyar mobilszámra
-szűkített validátorával írja felül. A telefonszám-validálás szándékosan nem
-a plugin dolga: az országonként más, és a hozzá tartozó komponens
-kiszervezése külön kérdés.
-
-**Ha egy mező mégis hiányzik a formról** (mert a host felülírta és közben
-elhagyta), a hozzá tartozó panel a sablonban némán kimarad — nem hibázik. A
-két panel egymástól függetlenül ellenőrzi a saját mezőjét (`is defined`).
-Ez azért fontos, mert egy `FormView` nem létező gyerekmezőjének közvetlen
-elérése (`form.valami`) Twig `RuntimeError`-t dob `strict_variables`
-mellett, ami a pénztár szállítási lépését állítaná le.
-
-## Az admin szállítási panel — host-szerződés a feladás-gombról
-
-**A hostnak a `ship` hookable `props.template`-jét kell a plugin sablonjára
-állítania.** A plugin `templates/admin/shipment/ship.html.twig`-je a FoxPost
-szállítási módokra a csomagfeladás-gombot rajzolja (a plugin saját
-`app_admin_foxpost_parcel_register` route-jára), minden más módra pedig
-változatlanul a Sylius alapsablonját rendereli — így egyetlen sablon szolgálja
-ki a panel mindkét esetét.
-
-A `ship` kulcs viszont a SyliusAdminBundle-é, és a plugin `prepend()`-je egy már
-betöltött bundle saját kulcsát nem tudja átállítani (ugyanaz a határ, mint a
-checkout `shipment` hookable-jénél), ezért ezt a hostnak kell megtennie:
-
-```yaml
-sylius_twig_hooks:
-    hooks:
-        'sylius_admin.order.show.content.sections.shipments.item.actions':
-            ship:
-                props:
-                    template: '@CodeConjureSyliusFoxPostPlugin/admin/shipment/ship.html.twig'
-```
-
-A `props` többi kulcsa (`resource`, `path`, `pathParameters`) a Sylius
-alapkonfigurációjából marad meg — a részleges felülírás kulcs szerint fésül
-össze.
-
-**A plugin eltávolítása ezzel ennek az egy sornak a törlése**: a bolt sablonjai
-nem ismerik sem a plugin route-ját, sem a Twig-szűrőit (#193).
-
-### Más szállító-plugin ugyanezen a panelen (#15)
-
-A `props.template` **egyetlen** érték, tehát egy második szállító-plugin (GLS,
-Packeta) nem kaphat saját sort ugyanide — az egyik némán kiütné a másikat, és
-a vesztes szállító szállítmányán a Sylius sima „Szállítva" gombja jelenne meg,
-csomagfeladás nélkül.
-
-Ezért a plugin sablonja a **nem FoxPost-os** szállítmányoknál egy szállító-semleges,
-**abszolút nevű** hookot renderel:
-
-```
-codeconjure_carrier.admin.order.shipment.ship
-```
-
-Kontextus: `resource` (a szállítmány), `form` (a Sylius ship-űrlap nézete),
-`attributes` (a LiveComponent attribútumai). Egy másik szállító-plugin ide
-kapcsolódik, a saját „én kezelem-e ezt a módot?" feltételével — a hook neve
-foglalatlan, tehát a plugin `prepend()`-je be tudja vezetni, **host-lépés nélkül**:
-
-```yaml
-sylius_twig_hooks:
-    hooks:
-        'codeconjure_carrier.admin.order.shipment.ship':
-            gls:
-                template: '@CodeConjureSyliusGlsPlugin/admin/shipment/ship.html.twig'
-```
-
-A hookable sablonja **csak a saját módjainál** rajzoljon bármit. Ha a hookba
-egyetlen hookable sem rajzolt — a kimenet üres, csak whitespace, vagy csak a
-`kernel.debug` alatti Twig Hooks HTML-kommentjei —, a Sylius alapgombja jelenik
-meg, ahogy a #15 előtt. FoxPost-szállítmánynál a hook nem renderelődik.
-
-A rendelés-összegző átvételi pont-sora ehhez képest **nem kér host-lépést**: azt
-a plugin a `sylius_shop.shared.order.show.summary.addresses.shipping.pickup_point`
-hookra ülteti, amit a Sylius nem foglal — a hostnak csak annyi a dolga, hogy a
-szállítási blokkjában meghívja (`{% hook 'pickup_point' with { shipment: shipment } %}`),
-szolgáltatónév nélkül.
+**A plugin eltávolítása** a bundle- és a route-sor törlése: a közös csomag két
+host-sora a többi szállítót (vagy a Sylius alapját) szolgálja tovább.
 
 ## Nyomkövetés-szinkron (cron)
 
