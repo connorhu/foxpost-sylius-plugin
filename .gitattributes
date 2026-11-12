@@ -1,0 +1,11 @@
+# A Composer dist-csomagból (GitHub-archívum) kimaradnak: a befogadó boltban
+# semmi nem futtatja őket, a Flex csak az assets/package.json-t és a
+# controllereket olvassa.
+/.github              export-ignore
+/tests                export-ignore
+/assets/test          export-ignore
+/assets/vitest.config.js export-ignore
+/assets/package-lock.json export-ignore
+/ecs.php              export-ignore
+/phpstan.dist.neon    export-ignore
+/phpunit.xml.dist     export-ignore
