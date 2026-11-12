@@ -1,25 +1,14 @@
 sylius_twig_hooks:
     hooks:
-        # A 'shipment' nevet a SyliusShopBundle már foglalja (@SyliusShop/...),
-        # a prepend() ezt SOSEM tudja felülírni — a Symfony a saját bundle
-        # sorrendjét (nem a plugin sorrendjét) alkalmazza egy már létező
-        # hookable névre. Ez a bejegyzés emiatt ma HOLT: a hostnak kell saját
-        # config/packages/_sylius.yaml-jában felülregisztrálnia a plugin
-        # shipments.html.twig-jét erre a névre (lásd a README host-szerződés
-        # szakaszát), különben sem a FoxPost blokkok, sem a foxpost_fields
-        # nem jelenik meg. Bent hagyva, mert ártalmatlan, és egy jövőbeli
-        # Sylius-verzióban a hookable-prioritás kezelése változhat.
-        'sylius_shop.checkout.select_shipping.content.form.shipments':
-            shipment:
-                template: '@CodeConjureSyliusFoxPostPlugin/shop/checkout/select_shipping/shipments.html.twig'
-                priority: 0
-
-        # Ez viszont ÚJ név (a Sylius alapja nem definiálja) — a prepend()
-        # itt ténylegesen nyer, host-oldali beavatkozás nélkül.
-        'sylius_shop.checkout.select_shipping.content.form.shipments.shipment':
-            foxpost_fields:
-                template: '@CodeConjureSyliusFoxPostPlugin/shop/checkout/select_shipping/foxpost_fields.html.twig'
-                priority: -50
+        # A pénztár: a FoxPost csomagautomata-választója a közös
+        # codeconjure/sylius-carrier-bundle widget-hookján (#15). ÚJ név, a
+        # prepend() nyer. A `pickupPointId` és a `phoneNumber` mezőt, a két
+        # szekciót és a láthatóságot a közös csomag adja — a FoxPost csak a
+        # választó felületét. A Sylius foglalt `…form.shipments` → `shipment`
+        # kulcsát a host a KÖZÖS csomag sablonjára állítja, nem erre a pluginra.
+        'sylius_shop.checkout.select_shipping.content.form.shipments.shipment.carrier_fields':
+            foxpost:
+                template: '@CodeConjureSyliusFoxPostPlugin/shop/checkout/select_shipping/pickup_point_widget.html.twig'
 
         # A négy admin hook: mind ÚJ név, a prepend() itt is nyer. A pontos
         # nevek és prioritások a bolt git-történetéből (config/packages/
@@ -57,13 +46,11 @@ sylius_twig_hooks:
                 template: '@CodeConjureSyliusFoxPostPlugin/shop/order/summary_pickup_point.html.twig'
                 priority: 0
 
-        # Ez viszont a SyliusAdminBundle saját `ship` kulcsa — a prepend() nem
-        # tudja átállítani (ugyanaz a határ, mint a fenti `shipment`-nél), ezért
-        # ez a bejegyzés ma HOLT. A `props.template` cseréje a befogadó bolt egy
-        # sora, l. a README „Az admin szállítási panel" szakaszát. Bent hagyva,
-        # mert ártalmatlan, és dokumentálja, hova tartozik a sablon.
-        'sylius_admin.order.show.content.sections.shipments.item.actions':
-            ship:
-                component: 'sylius_admin:shipment:ship_form'
-                props:
-                    template: '@CodeConjureSyliusFoxPostPlugin/admin/shipment/ship.html.twig'
+        # Az admin feladás-gomb a közös codeconjure/sylius-carrier-bundle
+        # szállító-hookján (#15). ÚJ név, a prepend() nyer. A Sylius foglalt
+        # `ship` slotját (`props.template`) a host a KÖZÖS csomag sablonjára
+        # állítja; az minden szállítót ebből a hookból rajzol, és ha egyik sem
+        # rajzolt (a FoxPost csak a saját módjainál), a Sylius alapgombját.
+        'codeconjure_carrier.admin.order.shipment.ship':
+            foxpost:
+                template: '@CodeConjureSyliusFoxPostPlugin/admin/shipment/ship.html.twig'

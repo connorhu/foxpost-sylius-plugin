@@ -1,8 +1,0 @@
-# See validators.hu.yaml for the structure and provenance notes.
-codeconjure:
-    foxpost:
-        checkout:
-            phone_number:
-                not_blank: 'Phone number is required.'
-            pickup_point_id:
-                not_blank: 'Please pick a parcel locker.'

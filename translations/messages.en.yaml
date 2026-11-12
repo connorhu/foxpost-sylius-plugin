@@ -10,13 +10,6 @@ codeconjure:
         shipping_method:
             default_size: 'Default FoxPost parcel size'
             default_size_placeholder: 'Not set'
-        checkout:
-            pickup_point_id: 'Parcel locker'
-            phone_number:
-                label: 'Phone number'
-                help: 'The parcel locker sends a pickup SMS to this number.'
-            parcel_locker:
-                title: 'Parcel locker details'
         pickup_point:
             title: 'Parcel locker'
             select: 'Select a parcel locker'

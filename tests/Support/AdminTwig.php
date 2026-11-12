@@ -52,6 +52,8 @@ final class AdminTwig
         foreach ($extraNamespaces as $namespace => $path) {
             $loader->addPath($path, $namespace);
         }
+        // A Symfony form_div_layout (a `form_start`/`form_row` alapblokkjai).
+        $loader->addPath(self::root() . '/vendor/symfony/twig-bridge/Resources/views/Form');
 
         $twig = new Environment($loader, ['strict_variables' => true]);
         $twig->addExtension(new TranslationExtension(self::translator()));

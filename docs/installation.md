@@ -21,17 +21,17 @@ az a bolt a plugin első (és a mérések idején egyetlen) befogadója.
 
 | # | Hely | Kötelező? | Hibamód, ha kimarad |
 |---|---|---|---|
-| 1 | `config/bundles.php` | igen | **hangos** — a konténer nem fordul |
+| 1 | `config/bundles.php` (a közös csomaggal együtt, l. 5.) | igen | **hangos** — a konténer nem fordul |
 | 2 | `config/routes/codeconjure_foxpost.yaml` | igen | **hangos** — minden admin lap `RouteNotFoundException` |
-| 3 | `assets/controllers.json` | **automatikus** (a Flex írja) | néma — a két Stimulus controller nem kerül a bundle-be |
+| 3 | `assets/controllers.json` | **automatikus** (a Flex írja) | néma — a Stimulus controllerek nem kerülnek a bundle-be |
 | 4 | `.env` | igen | **hangos** — `EnvNotFoundException` |
-| 5 | `config/packages/_sylius.yaml` — pénztár hook | igen (ha van pénztár-UI) | néma — a FoxPost-mezők nem jelennek meg |
-| 6 | `config/packages/_sylius.yaml` — admin feladás-panel | igen | néma — a csomagot nem lehet feladni a rendelés lapjáról |
-| 7 | a szállítmány-entitás két írható mezője | igen (ha van pénztár-UI) | **hangos** — `NoSuchPropertyException` a szállítási lépésen |
-| 8 | `config/services.yaml` — városkereső route | nem | néma — a postai kód → város kiegészítés nem működik |
+| 5 | a közös szállító-csomag: bundle + két `_sylius.yaml` sor | igen | néma — a pénztár mezői rejtve maradnak, a csomagot nem lehet feladni |
+| 6 | *(megszűnt — az 5. része)* | | |
+| 7 | a két entitás szerződése (`deliversToPickupPoint()` új) | igen | **hangos** — fordítási hiba, vagy `NoSuchPropertyException` a szállítási lépésen |
+| 8 | *(megszűnt — városkereső)* | | |
 | 9 | `config/packages/sylius_labs_doctrine_migrations_extra.yaml` | csak frissítő boltnak | a migrációk sorrendje fordított |
 
-A 2., 5., 6. és 7. lépés a `codeconjure/egyhazzene-hu-bolt` oldalán
+A 2., 5. és 7. lépés a `codeconjure/egyhazzene-hu-bolt` oldalán
 **teszttel őrzött** (`tests/Functional/FoxPostPluginWiringTest.php`), a 3. a
 `tests/Unit/Assets/ControllersJsonContractTest.php`-ban — érdemes ugyanígy
 megőrizni, mert mind az öt hibamód néma vagy félrevezető.
@@ -133,8 +133,10 @@ alól (#209).
 {
     "controllers": {
         "@codeconjure/foxpost-sylius-plugin": {
-            "foxpost-shipping": { "enabled": true, "fetch": "eager" },
             "foxpost-pickup-point": { "enabled": true, "fetch": "eager" }
+        },
+        "@codeconjure/sylius-carrier-bundle": {
+            "carrier-shipment": { "enabled": true, "fetch": "eager" }
         }
     }
 }
@@ -165,12 +167,14 @@ Amit viszont a Flex **nem** tesz meg: az `npm install` és a build. A
 bejegyzés megléte nem bizonyíték — a bundle-t kell megmérni (l. lentebb,
 *Ellenőrzés*).
 
-**Az azonosítókkal nincs dolgod.** A két controller a rövid
-`foxpost-shipping`, illetve `foxpost-pickup-point` azonosítón regisztrálódik —
+**Az azonosítókkal nincs dolgod.** A FoxPost controllere a rövid
+`foxpost-pickup-point` azonosítón regisztrálódik (a 0.3.x `foxpost-shipping`
+controllere a 0.4.0-ban megszűnt: a láthatóságot a közös csomag
+`carrier-shipment` controllere kezeli) —
 pontosan azon, amit a plugin sablonjainak `data-controller` attribútumai
 írnak. Ez nem a bridge alapértelmezése: az a csomagnévből képezné
-(`codeconjure--foxpost-sylius-plugin--foxpost-shipping`), ezért a plugin
-`assets/package.json`-ja mindkét bejegyzésben megadja a `name` kulcsot
+(`codeconjure--foxpost-sylius-plugin--foxpost-pickup-point`), ezért a plugin
+`assets/package.json`-ja megadja a `name` kulcsot
 (#203 — a kiszervezés óta ez a kulcs hiányzott, és a két controller némán nem
 kapcsolódott be). A saját `controllers.json`-odban is adhatnál `name`-et, de
 az nem tartós: a Flex szinkronizálója csak az `enabled`, a `fetch` és az
@@ -204,56 +208,72 @@ Symfony\Component\DependencyInjection\Exception\EnvNotFoundException:
 A `FOXPOST_SANDBOX=true` a FoxPost sandbox API-ját használja; élesben
 `false`.
 
-## 5. A pénztár szállítási lépésének hookja
+## 5. A közös szállító-csomag (`codeconjure/sylius-carrier-bundle`)
 
-```yaml
-# config/packages/_sylius.yaml
-sylius_twig_hooks:
-    hooks:
-        'sylius_shop.checkout.select_shipping.content.form.shipments':
-            shipment:
-                template: '@CodeConjureSyliusFoxPostPlugin/shop/checkout/select_shipping/shipments.html.twig'
-                priority: 0   # vagy magasabb, ha a host maga is hookol ide
+A 0.4.0 óta a plugin a **közös szállító-csomagra** épül (#15): a pénztár két
+mezőjét (`pickupPointId`, `phoneNumber`), a validációs csoportjaikat, a
+szállítmányonkénti Stimulus-hatókört és az admin feladás-slotot az a csomag
+adja — egyszer, akárhány szállító-plugin (FoxPost, GLS, Packeta) van
+telepítve. A Composer függőségként húzza be; a bundle-t regisztrálni kell, a
+FoxPost **elé**:
+
+```php
+// config/bundles.php
+CodeConjure\SyliusCarrierBundle\CodeConjureSyliusCarrierBundle::class => ['all' => true],
+CodeConjure\SyliusFoxPostPlugin\CodeConjureSyliusFoxPostPlugin::class => ['all' => true],
 ```
 
-**Miért nem automatikus:** a `shipment` hookable-nevet a SyliusShopBundle maga
-is definiálja, és egy plugin `prepend()`-je **nem tud meglévő kulcsot
-felülírni** — a bundle-prepend a konfiglista elejére kerül, a későbbi (Sylius
-saját) bejegyzés kulcsonként nyer. A hosté a legutolsó szó, ezért ez a csere
-a telepítési szerződés része. Részletek és a hibamód: a README
-„A pénztár felülete" szakasza.
-
-## 6. Az admin feladás-panel hookja
+A közös csomag **két host-sora** váltja a 0.3.x két FoxPost-sorát:
 
 ```yaml
 # config/packages/_sylius.yaml
 sylius_twig_hooks:
     hooks:
+        # a pénztár szállítmány-ciklusa (volt: a FoxPost shipments.html.twig-je)
+        'sylius_shop.checkout.select_shipping.content.form.shipments':
+            shipment:
+                template: '@CodeConjureSyliusCarrier/shop/checkout/select_shipping/shipments.html.twig'
+
+        # az admin feladás-panel (volt: a FoxPost ship.html.twig-je)
         'sylius_admin.order.show.content.sections.shipments.item.actions':
             ship:
                 props:
-                    template: '@CodeConjureSyliusFoxPostPlugin/admin/shipment/ship.html.twig'
+                    template: '@CodeConjureSyliusCarrier/admin/shipment/ship.html.twig'
 ```
 
-Ugyanaz a mechanizmus, mint az 5. lépésnél: a `ship` kulcs a Syliusé. A
-`props` **kulcs szerint** fésül össze, tehát a Sylius `resource` / `path` /
-`pathParameters` propjai megmaradnak — csak a sablon cserélődik. Részletek: a
-README „Az admin szállítási panel" szakasza.
+A részletek és a hibamódok a közös csomag
+[telepítési leírásában](https://github.com/connorhu/sylius-carrier-bundle/blob/main/docs/installation.md)
+vannak. **A FoxPost maga nem kér Sylius-foglalt hookable-t**: a csomagautomata-
+választója a közös csomag widget-hookjába
+(`…shipments.shipment.carrier_fields`), a feladás-gombja a szállító-hookba
+(`codeconjure_carrier.admin.order.shipment.ship`) kapcsolódik — mindkettő új
+név, a `prepend()` magától bevezeti.
 
-A plugin sablonja a nem-FoxPost szállítási módoknál előbb a szállító-semleges
-`codeconjure_carrier.admin.order.shipment.ship` hookot rendereli (#15) — ide
-kapcsolódhat egy másik szállító-plugin, host-lépés nélkül —, és ha az üres, a
-Sylius saját panelját. A csere tehát nem FoxPost-specifikus boltot is kiszolgál,
-és egy második szállító-plugin mellett is egyetlen sor marad. Részletek: a
-README „Más szállító-plugin ugyanezen a panelen" szakasza.
+**Ha a host felülírta a FoxPost mezőpaneljét** (`foxpost_fields`): az a
+hookable megszűnt. A közös csomag `carrier_fields` hookable-jét lehet
+felülírni; a felülíró sablonnak a `data-carrier-shipment-target`
+attribútumokat meg kell tartania, és a csomagautomata-szekcióban meg kell
+hívnia a `{% hook 'carrier_fields' %}`-ot — enélkül a FoxPost-választó nem
+jelenik meg.
 
-## 7. A szállítmány-entitás két írható mezője
+## 6. (megszűnt) — az admin feladás-panel hookja
 
-**A form mezőit a 0.3.0 óta a plugin adja** (`phoneNumber`, `pickupPointId` —
-`Form\Extension\CheckoutShipmentTypeExtension`), tehát ehhez a lépéshez nincs
-form-oldali dolgod. Amit a hostnak adnia kell, az a **tárolás**: a
-`FoxPostShipmentInterface` négy metódusa (getter ÉS setter mindkét mezőre) a
-szállítmány-entitáson, két perzisztált oszlop fölött.
+A 0.3.x-ben külön lépés volt; a 0.4.0 óta a fenti 5. lépés második sora.
+
+## 7. A két entitás szerződése
+
+A szállítmány két oszlopa **a hosté** (szolgáltatófüggetlen: a futáros mód is
+kéri a telefont). A szerződés a közös csomagé, a FoxPost interfészei abból
+öröklődnek:
+
+- `FoxPostShipmentInterface` → `CarrierShipmentInterface`: getter **és
+  setter** a `pickupPointId`-hez és a `phoneNumber`-hez (a pénztár űrlapja ír),
+  plusz a `getDeliveryKindSlug()` fajta-pillanatkép;
+- `FoxPostShippingMethodInterface` → `CarrierShippingMethodInterface`:
+  `getDeliveryKindSlug()`, `requiresRecipientPhone()`, és **új a 0.4.0-ban:
+  `deliversToPickupPoint()`** — a csomagautomata-fajtánál `true`. Ebből dönti
+  el a közös csomag, hogy az átvételi pont kötelező-e, és megjelenjen-e a
+  szekció.
 
 ```php
 #[ORM\Column(name: 'pickup_point_id', type: Types::STRING, nullable: true)]
@@ -263,42 +283,23 @@ private ?string $pickupPointId = null;
 private ?string $phoneNumber = null;
 ```
 
-A két oszlop szándékosan a hosté, nem a plugin traitjé: mindkettő
-**szolgáltatófüggetlen** (a telefonszámot a futáros mód is kéri, pedig annak
-nincs FoxPost típusa).
-
 A setterek nélkül a hiba **hangos**, de nem ott, ahol az ember keresné: a form
-a property path-on keresztül ír, tehát a Symfony `PropertyAccessor` a pénztár
+a property path-on keresztül ír, a Symfony `PropertyAccessor` a pénztár
 szállítási lépését állítja le
-(`Can't get a way to read the property "pickupPointId"`). Az interfész ezért
-deklarálja őket — így a hiányuk fordításkor derül ki, nem a pénztárban.
+(`Can't get a way to read the property "pickupPointId"`).
 
-**Felülírás.** A két mező alapértelmezés: a plugin kiterjesztése magas
-prioritással fut, tehát egy sima, prioritás nélküli host form kiterjesztés
-bármelyik mezőt lecserélheti (típust, feliratot, constrainteket). A
-referencia-bolt így írja át a telefonmezőt a saját, magyar mobilszámra
-szűkített validátorára. A részletek a README „A pénztár felülete"
-szakaszában.
+**Felülírás.** A két mező a közös csomag alapértelmezése (`PRIORITY = 16`): egy
+prioritás nélküli host form-kiterjesztés bármelyiket lecserélheti (típust,
+feliratot, constrainteket) — a referencia-bolt így szűkíti a telefonmezőt a
+magyar mobilszámokra.
 
-## 8. Városkereső route (opcionális)
+## 8. (megszűnt) — városkereső route
 
-```yaml
-# config/services.yaml
-parameters:
-    codeconjure.foxpost.city_lookup_route: 'app_shop_cities_lookup'
-```
-
-A plugin szállítási controllere a postai kódból ki tudja egészíteni a város
-nevét, ha a bolt ad neki egy saját route-ot ehhez. A plugin nem ismerhet host
-route-nevet, ezért konténer-paraméterként kéri — **nem** `twig.globals`-ban
-`"@=path(...)"` alakban, mert a DI ExpressionLanguage-ben nincs `path()`
-függvény, az konténer-fordításkor elszállna.
-
-**Mérve (2026-10-10)** — a sor nélkül a paraméter a plugin alapértelmezésén
-marad (`"null"`), a `foxpost_city_lookup_url()` `null`-t ad, a sablon a
-`data-foxpost-shipping-city-lookup-url-value` attribútumot ki sem teszi, és a
-controller kiegészítés-ága csendben nem fut. Semmi nem hibázik — ezért
-opcionális, és ezért érdemes tudni róla.
+A `codeconjure.foxpost.city_lookup_route` paraméter és a
+`foxpost_city_lookup_url()` Twig-függvény a 0.4.0-ban megszűnt: csak a
+pénztár 0.3.x-es FoxPost-wrapperén volt kiolvasva, a postai kód mezője pedig
+a #99 óta nem a 2. lépésen van. Egy ottmaradt host-paraméter ártalmatlan,
+törölhető.
 
 ## 9. Migrációs sorrend — csak frissítő boltnak
 
@@ -366,8 +367,8 @@ bin/console debug:config doctrine_migrations | grep SyliusFoxPostPlugin
 # 3. A plugin három migrációja látszik, és a bolt sajátjai UTÁN
 bin/console doctrine:migrations:list | grep -c 'SyliusFoxPostPlugin'   # → 3
 
-# 4. A városkereső paraméter (ha beállítottad)
-bin/console debug:container --parameter=codeconjure.foxpost.city_lookup_route
+# 4. A FoxPost a közös csomag két hookjába kapcsolódik (#15)
+bin/console debug:config sylius_twig_hooks | grep -B1 -A2 'foxpost:' | grep -E 'carrier_fields|codeconjure_carrier'
 
 # 5. A Flex felismeri-e a csomagot: a kulcsszót a LOCKBÓL olvassa, és ha nincs
 #    ott, a következő update kitörli a controllers.json bejegyzést (#197)
@@ -383,12 +384,13 @@ A Stimulus-oldal böngésző nélkül a lefordított bundle regiszterén mérhet
 a rövid azonosítóknak ott kell lenniük:
 
 ```bash
-grep -c "'foxpost-shipping'" public/build/app/shop/app-shop-entry.js   # → 1
+grep -c "'foxpost-pickup-point'" public/build/app/shop/app-shop-entry.js   # → 1
+grep -c "'carrier-shipment'" public/build/app/shop/app-shop-entry.js       # → 1
 ```
 
 Felületen: az admin menüben megjelenik a FoxPost csomaglista, a pénztár
-szállítási lépésén pedig a FoxPost mód kiválasztásakor a telefonszám- és
-csomagautomata-panel.
+szállítási lépésén pedig a FoxPost automata-mód kiválasztásakor a közös
+csomag telefonszám- és átvételi pont-szekciója, benne a FoxPost-választóval.
 
 ---
 

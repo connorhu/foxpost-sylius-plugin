@@ -64,3 +64,22 @@ jobs:
 
             - name: ECS
               run: vendor/bin/ecs check --no-progress-bar
+
+    # A FoxPost csomagautomata-választójának Stimulus controllere (#15),
+    # valódi Stimulus-alkalmazással, jsdom alatt. Külön job: nem kell hozzá PHP.
+    stimulus:
+        name: "Stimulus controller (Node 24)"
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: assets
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '24'
+
+            - run: npm ci
+
+            - run: npm test

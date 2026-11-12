@@ -62,7 +62,6 @@ final class ContainerCompilationTest extends TestCase
         'framework',
         'sylius_resource',
         'sylius_grid',
-        'twig',
         'sylius_twig_hooks',
     ];
 
@@ -170,8 +169,8 @@ final class ContainerCompilationTest extends TestCase
      * hasParameter()-en át futásidejű getParameter()-hívást generálhat, ha
      * a placeholder dump-időben bármi okból nem regisztrálódik) egy
      * bevált, explicit <parameter>-indirekcióra cseréli — ugyanarra a
-     * mintára, amit a codeconjure.foxpost.city_lookup_route már
-     * bizonyítottan helyesen használ ugyanebben a fájlban.
+     * mintára, amit a (0.4.0-ban megszűnt) codeconjure.foxpost.city_lookup_route
+     * akkoriban bizonyítottan helyesen használt ugyanebben a fájlban.
      */
     public function testClientAndEnvironmentServicesAreInstantiableWithRealEnvironmentVariables(): void
     {

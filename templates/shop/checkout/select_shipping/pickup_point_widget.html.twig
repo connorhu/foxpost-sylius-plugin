@@ -1,0 +1,45 @@
+{# A FoxPost csomagautomata-választója a pénztárban (#15).
+
+   HOOKABLE a közös `codeconjure/sylius-carrier-bundle` widget-hookján:
+
+       sylius_shop.checkout.select_shipping.content.form.shipments.shipment.carrier_fields
+
+   A `pickupPointId` mezőt a közös csomag adja (rejtett mező), ez a sablon
+   CSAK a választó felülete: a kiválasztott pont kijelzése és a FoxPost
+   térképes választóját (iframe) megnyitó gomb. A választott pontot a
+   `foxpost-pickup-point` controller a `carrier:pickup-point-selected`
+   eseménnyel adja át — a mezőbe a közös `carrier-shipment` controller ír.
+
+   A `data-carrier-delivery-kinds` a közös controller szerződése: csak a
+   FoxPost automata-módnál látszik a választó.
+
+   A kontextus a `hookable_metadata`-ban jön (`form` = a szállítmány
+   űrlapnézete). Ha a host a `pickupPointId` mezőt elhagyta, a választó nem
+   jelenik meg — a pénztár ettől nem áll le. #}
+{% set form = hookable_metadata.context.form %}
+
+{% if form.pickupPointId is defined %}
+    {% set stored_id = form.pickupPointId.vars.value %}
+    {% set point = stored_id is not empty ? foxpost_pickup_point(stored_id) : { name: null, address: null } %}
+    {% set has_point = point.name is not empty %}
+    <div
+        class="mb-3"
+        data-carrier-delivery-kinds="foxpost_parcel_locker"
+        data-controller="foxpost-pickup-point"
+        data-foxpost-pickup-point-widget-url-value="{{ foxpost_pickup_point_widget_url() }}"
+    >
+        <div data-foxpost-pickup-point-target="display" class="mb-2 {% if not has_point %}d-none{% endif %}">
+            <span class="fw-semibold" data-foxpost-pickup-point-target="pointName">{{ point.name ?? '' }}</span>
+            <br>
+            <span class="text-muted small" data-foxpost-pickup-point-target="pointAddress">{{ point.address ?? '' }}</span>
+        </div>
+        <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm"
+            data-foxpost-pickup-point-target="button"
+            data-action="click->foxpost-pickup-point#openWidget"
+        >
+            {{ (has_point ? 'codeconjure.foxpost.pickup_point.change' : 'codeconjure.foxpost.pickup_point.select')|trans }}
+        </button>
+    </div>
+{% endif %}

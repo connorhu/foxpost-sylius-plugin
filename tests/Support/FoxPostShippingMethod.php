@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace CodeConjure\SyliusFoxPostPlugin\Tests\Support;
 
+use CodeConjure\FoxPost\DeliveryKind;
 use CodeConjure\SyliusFoxPostPlugin\Model\FoxPostShippingMethodInterface;
 use CodeConjure\SyliusFoxPostPlugin\Model\FoxPostShippingMethodTrait;
 use Sylius\Component\Core\Model\ShippingMethod;
@@ -37,5 +38,11 @@ final class FoxPostShippingMethod extends ShippingMethod implements FoxPostShipp
     public function getDeliveryKindSlug(): ?string
     {
         return $this->deliveryKindSlug;
+    }
+
+    /** A telepítési leírás ajánlása: a csomagautomata az átvételi pontos fajta. */
+    public function deliversToPickupPoint(): bool
+    {
+        return DeliveryKind::tryFrom($this->deliveryKindSlug ?? '') === DeliveryKind::ParcelLocker;
     }
 }
