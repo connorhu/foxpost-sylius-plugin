@@ -8,6 +8,13 @@ kompatibilisek.
 
 ## [Nem kiadott]
 
+## [0.4.1] – 2026-11-12
+
+### Javítva
+
+- A Stimulus controller tesztjének `vitest` fejlesztői függősége `^4.1`-re áll. A `^3.2` mellett a befogadó bolt `npm install`-ja egy második vitest-3 fát (esbuilddal) telepített a `file:`-linkelt csomag alá, mert a Symfony UX csomagok már vitest 4-et hoznak — a bolt `package-lock.json`-ja ettől több ezer sorral változott.
+- `.gitattributes` `export-ignore`: a tesztek, a vitest-konfig és az assets-lock nem kerül a Composer dist-csomagba.
+
 ## [0.4.0] – 2026-11-12
 
 **Törő változás a host-szerződésben (#15).** A plugin a közös
@@ -375,7 +382,8 @@ csomagba került, a protokoll-réteg a
 - **A nyomkövetés-szinkron záró naplója a lekérdezés találatszámát írja**, nem
   a futás eredményét (#173). *(Megoldva a `0.1.3`-ban.)*
 
-[Nem kiadott]: https://github.com/connorhu/foxpost-sylius-plugin/compare/0.4.0...main
+[Nem kiadott]: https://github.com/connorhu/foxpost-sylius-plugin/compare/0.4.1...main
+[0.4.1]: https://github.com/connorhu/foxpost-sylius-plugin/compare/0.4.0...0.4.1
 [0.4.0]: https://github.com/connorhu/foxpost-sylius-plugin/compare/0.3.0...0.4.0
 [0.3.0]: https://github.com/connorhu/foxpost-sylius-plugin/compare/0.2.0...0.3.0
 [0.2.0]: https://github.com/connorhu/foxpost-sylius-plugin/compare/0.1.3...0.2.0
